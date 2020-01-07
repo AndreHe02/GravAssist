@@ -4,11 +4,11 @@ import os
 import cmath
 from datetime import datetime, timedelta
 #for graphing
-'''
+
 #https://jakevdp.github.io/PythonDataScienceHandbook/04.02-simple-scatter-plots.html
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
-'''
+
 import numpy as np
 
 #target = planet to go (in string: e.g. "MARS" or "MARS BARYCENTER")
@@ -33,18 +33,19 @@ def getExitState(target, TIME, state0, step = timedelta(seconds=3)):
     gm, soi = plntConst
 
     dist = abs(pos)
-    angDisplacement = 0
+    #angDisplacement = 0
+    count = 0
 
     #construct circular orbit (for testing)
     #vel = cmath.rect((gm/dist)**(0.5), 3/4*3.1415926)
 
     #TODO: add crash detection?
     #simulation loop: quit if the spacecraft has went around a circle (2 pi plus a bit more)
-    while angDisplacement < (2*3.1416 + 0.5) and dist<soi:
-        '''
+    while dist<soi:
+
         #dist<soi or count<10:
         posLog.append(pos)
-        '''
+
         #phase = angle of complex number, in radians
         angTemp = cmath.phase(pos)
         a = cmath.rect(-1*gm/(dist**2),angTemp)
@@ -53,16 +54,24 @@ def getExitState(target, TIME, state0, step = timedelta(seconds=3)):
         pos += vel * step.seconds
         vel += a * step.seconds
         #angular displacement = linear displacement / r
-        angDisplacement += abs(vel*step.seconds)/dist
-        print(angDisplacement)
+        #angDisplacement += abs(vel/dist)
+        #print(angDisplacement)
         dist = abs(pos)
 
+        count+=1
+
+        if count > 10000:
+            if count > 50000:
+                return False
+            if abs(pos - complex(state0[0],state0[1]))/abs(pos) < 0.1:
+                return False
+
     #the spacecraft went in circles rather than exiting the SoI, this makes the function return false
-    if angDisplacement> 2*3.1416+0.5:
-        return false
+    #if angDisplacement> 2*3.1416+0.5:
+        #return false
 
     #for graphing
-    '''
+
     x = []
     y = []
     for i in posLog:
@@ -70,7 +79,7 @@ def getExitState(target, TIME, state0, step = timedelta(seconds=3)):
         y.append(i.imag)
     plt.scatter(x,y, marker='o')
     plt.show()
-    '''
+
     return [pos.real, pos.imag, vel.real, vel.imag]
 
 if __name__ == '__main__':
@@ -81,4 +90,4 @@ if __name__ == '__main__':
     #state0 = position of entrance ： [x,y,vx,vy]
 
     #assume barycenter to be center of cartesian graph (0,0)
-    getExitState("EARTH BARYCENTER", datetime(2001,10,15),[17800,17800,-01.02,01.02])
+    getExitState("EARTH BARYCENTER", datetime(2001,10,15),[7000,7000,-5 ,5])
