@@ -31,14 +31,14 @@ def getsta(target, TIME, mode = "LT+S", observer = "SOLAR SYSTEM BARYCENTER"):
     #
     utctim = parseDate(TIME)
 
-    print( 'Converting UTC Time: {:s}'.format(utctim)  )
+    #print( 'Converting UTC Time: {:s}'.format(utctim)  )
 
     #
     #Convert utctim to ET.
     #
     et = spiceypy.str2et( utctim )
 
-    print( '   ET seconds past J2000: {:16.3f}'.format(et) )
+    #print( '   ET seconds past J2000: {:16.3f}'.format(et) )
 
     #
     # Compute the apparent state of target as seem from
@@ -49,9 +49,9 @@ def getsta(target, TIME, mode = "LT+S", observer = "SOLAR SYSTEM BARYCENTER"):
     [state, ltime] = spiceypy.spkezr( target, et,      'J2000',
                                       mode,   observer       )
 
-    print( '   Apparent state of MARS BARYCENTER (4) as seen '
-           'from SSB (0) in the J2000\n'
-           '      frame (km, km/s):'              )
+    #print( '   Apparent state of MARS BARYCENTER (4) as seen '
+           #'from SSB (0) in the J2000\n'
+           #'      frame (km, km/s):'              )
 
     #print( '      X = {:16.3f}'.format(state[0])       )
     #print( '      Y = {:16.3f}'.format(state[1])       )
@@ -59,6 +59,8 @@ def getsta(target, TIME, mode = "LT+S", observer = "SOLAR SYSTEM BARYCENTER"):
     #print( '     VX = {:16.3f}'.format(state[3])       )
     #print( '     VY = {:16.3f}'.format(state[4])       )
     #print( '     VZ = {:16.3f}'.format(state[5])       )
+
+    spiceypy.unload( METAKR )
 
     return state
 
