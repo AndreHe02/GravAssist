@@ -42,10 +42,10 @@ def getExitState(target, TIME, state0, step = timedelta(seconds=3)):
     #TODO: add crash detection?
     #simulation loop: quit if the spacecraft has went around a circle (2 pi plus a bit more)
     while dist<soi:
-
-        #dist<soi or count<10:
+        '''
+        #for graphing, un-comment if you want to see graph
         posLog.append(pos)
-
+        '''
         #phase = angle of complex number, in radians
         angTemp = cmath.phase(pos)
         a = cmath.rect(-1*gm/(dist**2),angTemp)
@@ -60,18 +60,19 @@ def getExitState(target, TIME, state0, step = timedelta(seconds=3)):
 
         count+=1
 
-        if count > 10000:
-            if count > 50000:
+        #if after a long time, the spacecraft goes back to around it's initial position,
+        #then it's probably going in ellipse
+        #otherwise if it
+
+        if count > 30000:
+            if count > 200000:
                 return False
             if abs(pos - complex(state0[0],state0[1]))/abs(pos) < 0.1:
                 return False
 
-    #the spacecraft went in circles rather than exiting the SoI, this makes the function return false
-    #if angDisplacement> 2*3.1416+0.5:
-        #return false
 
-    #for graphing
-
+    '''
+    #for graphing, un-comment if you want to see graph
     x = []
     y = []
     for i in posLog:
@@ -79,6 +80,7 @@ def getExitState(target, TIME, state0, step = timedelta(seconds=3)):
         y.append(i.imag)
     plt.scatter(x,y, marker='o')
     plt.show()
+    '''
 
     return [pos.real, pos.imag, vel.real, vel.imag]
 
