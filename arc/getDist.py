@@ -3,11 +3,6 @@ from builtins import input
 from datetime import datetime
 import spiceypy
 
-#test function to see if spiceypy is installed correctly
-def print_ver():
-        """Prints the TOOLKIT version
-        """
-        print(spiceypy.tkvrsn('TOOLKIT'))
 
 #get relative position and velocity of target from POV of observer at TIME, using correction mode mode
 def getsta(target, TIME, mode = "LT+S", observer = "SOLAR SYSTEM BARYCENTER"):
