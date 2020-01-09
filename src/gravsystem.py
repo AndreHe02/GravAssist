@@ -7,7 +7,7 @@ COLORS = [vp.color.orange, vp.color.gray(0.5), vp.color.yellow,
           vp.color.yellow, vp.color.green, vp.color.blue, 
           vp.color.gray(0.5)]
 #just for graphics
-REL_VRADII = [10, 10, 10, 10, 10, 20, 30, 50, 50, 50]
+REL_VRADII = [30, 8, 8, 10, 10, 20, 30, 50, 50, 50]
 
 class gravsystem:
     
@@ -17,7 +17,11 @@ class gravsystem:
         self.body_list = []
         for i, body_name in enumerate(body_name_list):
             body = ephemeris.get_body(body_name)
-            body.set_visuals(rel_vradii[i], colors[i], True)
+            if body_name == 'SUN':
+                #the sun is emissive while the planets are not
+                body.set_visuals(rel_vradii[i], colors[i], False, True, 'curve')
+            else:
+                body.set_visuals(rel_vradii[i], colors[i], True, False, 'curve')
             self.body_list.append(body)
         
         #bodies affected by gravity
