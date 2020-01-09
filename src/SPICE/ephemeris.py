@@ -11,8 +11,8 @@ class ephemeris:
         self.mode = mode
         self.observer = observer
     
-    def get_body(self, target):
-        return body(target, self.sp, self.mode, self.observer)
+    def get_body(self, target, barycenter_name=None):
+        return body(target, self.sp, self.mode, self.observer, barycenter_name)
     
     
         

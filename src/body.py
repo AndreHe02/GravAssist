@@ -2,13 +2,16 @@ import numpy as np
 import vpython as vp
 
 class body:
-    def __init__(self, name, sp, mode, observer):
+    def __init__(self, name, sp, mode, observer, barycenter_name=None):
         self.name = name
         self.sp = sp
         self.observer = observer
         self.mode = mode
         self.Gmass = self.const('GM', 1)
         self.radii = self.const('RADII', 3)
+        self.barycenter_name = barycenter_name
+        if not barycenter_name:
+            self.barycenter_name = self.name + ' BARYCENTER'
         
         self.visual = None
         self.vradius = 10
@@ -21,9 +24,7 @@ class body:
     def state(self, time):
         def convert(dateObj):
             return self.sp.str2et(dateObj.strftime("%Y %b %d %H:%M:%S").lower())
-        if self.name=='SUN':barycenter = 'SOLAR SYSTEM BARYCENTER'
-        else:barycenter = self.name + ' BARYCENTER'
-        [state, ltime] = self.sp.spkezr(barycenter, convert(time), 'J2000', self.mode, self.observer)
+        [state, ltime] = self.sp.spkezr(self.barycenter_name, convert(time), 'J2000', self.mode, self.observer)
         return np.array(state)
 
     def pos(self, time):
@@ -46,4 +47,7 @@ class body:
                                     trail_type = 'points')
         else:
             self.visual.pos = vp.vector(*(self.pos(time)*scale))
+            self.visual.radius = self.vradius
+            self.visual.color = self.color
+            self.visual.make_trail = self.make_trail
         

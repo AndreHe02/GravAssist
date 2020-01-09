@@ -31,3 +31,6 @@ class passive_body:
                                     trail_type = 'points')
         else:
             self.visual.pos = vp.vector(*(self.pos*scale))
+            self.visual.radius = self.vradius
+            self.visual.color = self.color
+            self.visual.make_trail = self.make_trail
