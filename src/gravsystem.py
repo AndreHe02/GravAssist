@@ -1,25 +1,18 @@
 import numpy as np
 import vpython as vp
 from math import sqrt
-SOLAR_SYSTEM = ['SUN', 'MERCURY', 'VENUS', 'EARTH', 'MARS', 'JUPITER', 'SATURN', 'URANUS', 'NEPTUNE', 'PLUTO']
-BARYCENTERS = ['SOLAR SYSTEM BARYCENTER', None, None, None, None, None, None, None, None, None] 
-COLORS = [vp.color.orange, vp.color.gray(0.5), vp.color.yellow, 
-          vp.color.blue, vp.color.red, vp.color.yellow, 
-          vp.color.yellow, vp.color.green, vp.color.blue, 
-          vp.color.gray(0.5)]
-#just for graphics, not to scale
-REL_VRADII = [10, 10, 10, 10, 10, 20, 30, 50, 50, 50]
 
 class gravsystem:
     
-    def __init__(self, ephemeris, t0, body_name_list=SOLAR_SYSTEM,
-                 barycenter_list=BARYCENTERS, colors=COLORS, rel_vradii=REL_VRADII):
+    def __init__(self, config, ephemeris, t0):
+        
+        bodies_config = config.bodies
 
         #planets and stars that move by set orbits
         self.body_list = {}
-        for i, body_name in enumerate(body_name_list):
-            body = ephemeris.get_body(body_name, barycenter_list[i])
-            body.set_visuals(rel_vradii[i], colors[i], True)
+        for body_name in bodies_config:
+            body_config = bodies_config[body_name]
+            body = ephemeris.get_body(body_config)
             self.body_list[body_name] = body
         
         #bodies affected by gravity
@@ -39,6 +32,9 @@ class gravsystem:
         net_field = np.zeros(3)
         for key in self.body_list:
             body = self.body_list[key]
+       
+            if body.nograv: pass
+            
             GM = body.Gmass
             r = body.pos(self.time) - pos
             g = r * GM/(mag(r)**3)

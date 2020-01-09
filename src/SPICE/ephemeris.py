@@ -3,17 +3,22 @@ from body import body
 
 class ephemeris:      
     
-    def __init__(self, sp, root_dir, METADATA='metadata.tm', mode='LT+S', observer='SOLAR SYSTEM BARYCENTER'):
+    def __init__(self, sp, config):
         self.sp = sp
-        os.chdir(root_dir + '/src/spice/')
-        self.sp.furnsh(METADATA)
-        os.chdir(root_dir)
-        self.mode = mode
-        self.observer = observer
+        
+        os.chdir(config.root_dir + '/spice/')
+        self.sp.furnsh(config.metadata)
+        os.chdir(config.root_dir)
+        
+        self.mode = config.mode
+        self.observer = config.observer
+        self.config = config
     
-    def get_body(self, target, barycenter_name=None):
-        return body(target, self.sp, self.mode, self.observer, barycenter_name)
+    def get_body(self, body_config):
+        return body(self.sp, body_config, self.mode, self.observer)
     
+    def __del__(self):
+        self.sp.unload(self.config.metadata)
     
         
         

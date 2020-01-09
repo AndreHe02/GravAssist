@@ -2,13 +2,13 @@ import vpython as vp
 
 class passive_body:
     #all units in SI. pos and vel are type np.array
-    def __init__(self, name, pos, vel):
+    def __init__(self, name, pos, vel, vradius=10, color=vp.color.white, make_trail=False):
         self.name = name
         self.pos = pos
         self.vel = vel
         
         self.visual = None
-        self.vradius = 10
+        self.vradius = vradius
         self.color = vp.color.white
         self.make_trail = False
     
@@ -31,6 +31,4 @@ class passive_body:
                                     trail_type = 'points')
         else:
             self.visual.pos = vp.vector(*(self.pos*scale))
-            self.visual.radius = self.vradius
-            self.visual.color = self.color
-            self.visual.make_trail = self.make_trail
+            

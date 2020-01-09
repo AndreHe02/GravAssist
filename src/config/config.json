@@ -1,0 +1,132 @@
+{
+    "root_dir":"C:/Users/HP/GravAssist/src",
+    "metadata":"metadata.tm",
+    "mode":"LT+S",
+    "observer":"SOLAR SYSTEM BARYCENTER",
+    "bodies":{
+        "SUN":{
+            "name":"SUN",
+            "barycenter":"SOLAR SYSTEM BARYCENTER",
+            "color":[1.0, 0.6, 0],
+            "radius":30,
+            "other":{
+                "emissive":1,
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+        "MERCURY":{
+            "name":"MERCURY",
+            "barycenter":"MERCURY BARYCENTER",
+            "color":[0.5, 0.5, 0.5],
+            "radius":8,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+                
+        "VENUS":{
+            "name":"VENUS",
+            "barycenter":"VENUS BARYCENTER",
+            "color":[1.0, 1.0, 0],
+            "radius":8,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+                
+        "EARTH":{
+            "name":"EARTH",
+            "barycenter":"EARTH BARYCENTER",
+            "color":[0, 0, 1.0],
+            "radius":0.1,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points",
+                "trail_radius":1.6
+            }
+        },
+                
+        "MARS":{
+            "name":"MARS",
+            "barycenter":"MARS BARYCENTER",
+            "color":[1.0, 0, 0],
+            "radius":10,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+        "JUPITER":{
+            "name":"JUPITER",
+            "barycenter":"JUPITER BARYCENTER",
+            "color":[1.0, 1.0, 0],
+            "radius":20,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+        "SATURN":{
+            "name":"SATURN",
+            "barycenter":"SATURN BARYCENTER",
+            "color":[1.0, 1.0, 0],
+            "radius":30,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+        "URANUS":{
+            "name":"URANUS",
+            "barycenter":"URANUS BARYCENTER",
+            "color":[0, 0, 1.0],
+            "radius":50,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+        "NEPTUNE":{
+            "name":"NEPTUNE",
+            "barycenter":"NEPTUNE BARYCENTER",
+            "color":[0, 0, 1.0],
+            "radius":50,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+        "PLUTO":{
+            "name":"PLUTO",
+            "barycenter":"PLUTO BARYCENTER",
+            "color":[0.5, 0.5, 0.5],
+            "radius":50,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+        
+         "MOON":{
+            "name":"MOON",
+            "barycenter":"MOON",
+            "color":[0.5, 0.5, 0.5],
+            "radius":0.02,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        }
+        
+    }
+    
+}
