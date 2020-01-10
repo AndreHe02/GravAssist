@@ -12,7 +12,8 @@
             "other":{
                 "emissive":1,
                 "make_trail":1,
-                "trail_type":"points"
+                "trail_type":"points",
+                "trail_radius":1.6
             }
         },
         
@@ -45,8 +46,7 @@
             "radius":0.1,
             "other":{
                 "make_trail":1,
-                "trail_type":"points",
-                "trail_radius":1.6
+                "trail_type":"points"
             }
         },
                 
