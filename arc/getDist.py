@@ -59,6 +59,8 @@ def getsta(target, TIME, mode = "LT+S", observer = "SOLAR SYSTEM BARYCENTER"):
 
     return state
 
+
+
 def below10(num):
     if(num<10):
         return '0'
