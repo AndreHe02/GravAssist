@@ -48,16 +48,15 @@ def squish(coord, mtrx):
 
 def unSquish(coord, mtrx):
     invMtrx = np.linalg.inv(mtrx)
-    print(invMtrx)
+    #print(invMtrx)
     return np.matmul(invMtrx, np.append(coord, [0]))
 
 class trajectory:
 
+    #
+    #state is relative to the sun
+    #
     def __init__(self,body,time,state):
-        self.body = body
-        self.time = time
-        self.state = state
-        self.soi = body.soi(time)
         self.GM = body.Gmass[0]
 
         #output vars explanation
@@ -78,7 +77,7 @@ class trajectory:
             "NU": self.elements[8], #True anomaly at epoch.
             "A": self.elements[9] #Semi-major axis. A is set to zero if it is not computable.
         }
-        print(self.elements)
+        #print(self.elements)
 
         r = np.array(state[:3])
         v = np.array(state[3:6])
@@ -99,7 +98,7 @@ class trajectory:
         rR = squish(r, self.rMtrx)
         vR = squish(v, self.rMtrx)
 
-        print(r, v, "\n", h, e, "\n", i, j, k, "\n", rR, vR, "\n", self.elements['RP'])
+        #print(r, v, "\n", h, e, "\n", i, j, k, "\n", rR, vR, "\n", self.elements['RP'])
 
         #
         #find total area sweeped by the object inside the sphere of influence
@@ -114,21 +113,38 @@ class trajectory:
         X = lambda x: foc + x
         # scipy integration -- quad (formula, lower bound, upper bound)
         Area = lambda r: 2 * abs (quad(lambda x: math.sqrt(x**2-A**2), X(r[0]), X(RP))[0] * math.sqrt(E**2 - 1) + .5 * np.sign(r[0])*abs(r[0]*r[1]) )
-        print(Area(rR))
+        #print(Area(rR))
 
         # dA/dt = r * v / 2
         arealVelocity = mag(rR) * mag(vR) / 2
-        deltaT = Area(rR)/ arealVelocity
+        self.deltaT = Area(rR)/ arealVelocity
 
         #exit state using symmetry
         vfR = np.array([vR[0]*-1, vR[1]])
         rfR = np.array([rR[0], rR[1]*-1])
 
         #convert back to 3d J2000 rather than 2d orbital-plane coords
-        vf = unSquish(vfR, self.rMtrx)
-        rf = unSquish(rfR, self.rMtrx)
+        self.vf = unSquish(vfR, self.rMtrx)
+        self.rf = unSquish(rfR, self.rMtrx)
 
-        print("deltaT: ", deltaT, "\nvf:", vf, "\nrf: ", rf)
+        print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
+
+
+def swingby(planet, time, state):
+
+    #convert to relative position to the planet, but still in the xyz frame
+    state = state - planet.state(time)
+
+    #get trajectory, here traj.rf and traj.vf are relative to the planet
+    traj = trajectory (planet, time, state)
+    deltaT = timedelta(seconds = traj.deltaT)
+
+    fState = np.append(traj.rf, traj.vf)
+    print(planet.state(time + deltaT))
+    fState = np.array(planet.state(time + deltaT)) + fState
+    print(fState)
+
+    return fState, traj.deltaT
 
 if __name__ == '__main__':
     E = ephemeris(sp, '/Users/labohem/Desktop/school/independent study/GravAssist')
@@ -137,5 +153,5 @@ if __name__ == '__main__':
     jupiter = E.get_body('JUPITER')
 
     d = datetime(2000,1,1)
-    #
-    traj = trajectory(earth, d, [200000,70000,10000,-.5,-6,0])
+    #print(earth.state(d))
+    print(swingby(earth, d, [200000,70000,10000,-.5,-6,0]+earth.state(d)))
