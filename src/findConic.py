@@ -107,10 +107,6 @@ class trajectory:
         #zenith is always positive, fpa might be either pos, neg, or 0
         zenith = abs(findAngle(vR,rR))
         printD("zenith: ", zenith)
-        fpa = np.pi / 2 - zenith
-        #if fpa is 0, then determine the direction of v directly, relative to the focal vector
-        if fpa == 0:
-            fpa = np.cross(np.array([vR[0],vR[1],0]),np.array([self.e[0],self.e[1]]))[2]
 
         #true anomaly, sign is corrected to the sign of the rRy
         iAnom = np.arccos((self.a * (1 - eMag**2) - dist)/ eMag / dist) * np.sign(rR[1])
@@ -168,6 +164,9 @@ class trajectory:
 
         #vis viva for semi major axis
         self.a = 1 / (2 / dist - spd**2 / GM)
+
+        #linear eccentricity (focal distance from the origin)
+        self.f = self.a * eMag
 
 
     def plot(self, poly=20):
@@ -229,28 +228,35 @@ class trajectory:
             tra.annotate(("f=%.2f" % txt), (x[i]+1000, y[i]))
         plt.show()
 
-    def getTime (self):
+    def getTime (self, angleStart= 0, angleExit = 2 * np.pi):
 
         e = mag(self.e)
         a = self.a
         if e < 1:
-            printD("in cycle for ever")
+
             return
 
-        rStart, vStart, aStart = self.entranceState
-        rExit, vExit, aExit = self.exitState
+        else:
+            rStart, vStart, aStart = self.entranceState
+            rExit, vExit, aExit = self.exitState
 
         printD("rStart, rExit: ", rStart, rExit)
         printD("semiMajor:", a)
-        # find total area sweeped by the object inside the sphere of influence
-        # A(r) = [integrate from periapsis to r: sqrt(x^2-a^2)dx] * sqrt(e^2-1) + .5*sign(rx)*rx*ry
-        # quad (formula, lower bound, upper bound)
         printD("focal coordinate", self.f)
+
+        # find total area sweeped by the object inside the sphere of influence
         xP = a # coordinate of periapsis if origin is set at intercept of asymptotes
         X = lambda r: self.f + r[0] # horizontal coordinate of a vector if origin is set at intercept of asymptotes
-        printD("xP: ", xP, "xrStart:", X(rStart))
-        #evaluate area
-        A = lambda r: quad(lambda x: math.sqrt(x**2-a**2), X(r), xP)[0] * math.sqrt(e**2 - 1) + .5 * np.sign(r[0])*abs(r[0]*r[1])
+                                    # or, in the case of the ellipse, the midpoint between the foci
+
+        # scipy integration -- quad (formula, lower bound, upper bound)
+        if e > 1:
+            #area evaluation for hyperbola
+            A = lambda r: quad(lambda x: math.sqrt(x**2-a**2), X(r), xP)[0] * math.sqrt(e**2 - 1) + .5 * np.sign(r[0])*abs(r[0]*r[1])
+        else:
+            #area evaluation for ellipse
+            A = lambda r: quad(lambda x: math.sqrt(a**2-x**2), X(r), xP)[0] * math.sqrt(1 - e**2) + .5 * np.sign(r[0])*abs(r[0]*r[1])
+
         #add or minus the areas for the entrance and exit vectors
         if np.sign(rStart[1]) == np.sign(rExit[1]):
             area = A(rExit) - A(rStart)
@@ -261,16 +267,28 @@ class trajectory:
         arealVelocity = mag(rStart) * mag(vStart) / 2
         printD("areaV is ", arealVelocity)
 
+
         return area / arealVelocity
 
 if __name__ == '__main__':
     E = ephemeris(sp, '/Users/labohem/Desktop/school/independent study/GravAssist')
     earth = E.get_body('EARTH')
+    mars = E.get_body('MARS')
+    jupiter = E.get_body('JUPITER')
+
+    d = datetime(2000,1,1)
+
+    print(earth.pos(d), mars.pos(d), jupiter.pos(d))
 
     #constructs a conic section trajectory based on the given initial state
     #traj.a = semi major axis
     #traj.e = eccentricity vector, pointing from the foci to the center, with magnitude = eccentricity
 
-    traj = trajectory(earth, datetime(2001,10,15),[200000,70000,-.5,-6])
-    traj.plot()
+    t0 = time.time()
+
+    traj = trajectory(earth, datetime(d),[200000,70000,-.5,-6])
+    #traj.plot()
     print("time in soi is ",traj.getTime())
+
+    t1 = time.time()
+    print("time used:", t1-t0)
