@@ -118,7 +118,7 @@ class trajectory:
         # dA/dt = r * v / 2
         arealVelocity = mag(rR) * mag(vR) / 2
         self.deltaT = Area(rR)/ arealVelocity
-
+        """
         #exit state using symmetry
         vfR = np.array([vR[0]*-1, vR[1]])
         rfR = np.array([rR[0], rR[1]*-1])
@@ -126,25 +126,33 @@ class trajectory:
         #convert back to 3d J2000 rather than 2d orbital-plane coords
         self.vf = unSquish(vfR, self.rMtrx)
         self.rf = unSquish(rfR, self.rMtrx)
+        """
 
-        print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
+        #exit state using deltaT
+        self.exitState = sp.prop2b(self.GM, state, self.deltaT)
+
+        #print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
 
 
-def swingby(planet, time, state):
+def swingby(pivot, time, state):
 
     #convert to relative position to the planet, but still in the xyz frame
-    state = state - planet.state(time)
+    state = state - pivot.state(time)
 
     #get trajectory, here traj.rf and traj.vf are relative to the planet
-    traj = trajectory (planet, time, state)
+    traj = trajectory (pivot, time, state)
     deltaT = timedelta(seconds = traj.deltaT)
 
-    fState = np.append(traj.rf, traj.vf)
-    print(planet.state(time + deltaT))
-    fState = np.array(planet.state(time + deltaT)) + fState
-    print(fState)
+    fState = traj.exitState
+    #print(planet.state(time + deltaT))
+    fState = np.array(pivot.state(time + deltaT)) + fState
+    #print(fState)
 
     return fState, traj.deltaT
+
+def wait(pivot, state, deltaT):
+    GM = pivot.Gmass[0]
+    return sp.prop2b(GM, state, deltaT)
 
 if __name__ == '__main__':
     E = ephemeris(sp, '/Users/labohem/Desktop/school/independent study/GravAssist')
@@ -154,4 +162,8 @@ if __name__ == '__main__':
 
     d = datetime(2000,1,1)
     #print(earth.state(d))
+    tI = time.time()
+    #for i in range(1000):
     print(swingby(earth, d, [200000,70000,10000,-.5,-6,0]+earth.state(d)))
+    #tF = time.time()
+    #print("used time: ", tI-tF)
