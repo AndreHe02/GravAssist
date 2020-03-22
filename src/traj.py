@@ -44,6 +44,7 @@ def convert(dateObj):
     return sp.str2et(dateObj.strftime("%Y %b %d %H:%M:%S").lower())
 
 def squish(coord, mtrx):
+    #print ("mtrx:", mtrx)
     return np.matmul(mtrx, coord)[0:2]
 
 def unSquish(coord, mtrx):
@@ -92,13 +93,14 @@ class trajectory:
         #figure out j from the first 2 vectors
         j = -1 * np.cross(k, i)
 
-        self.rMtrx = np.array([i, j, k])
+        self.rMtrx = np.linalg.inv(np.transpose(np.array([i, j, k])))
 
+        #print("ijk:", i, j, k)
         #transform 3d coordinate to 2d coordinate
         rR = squish(r, self.rMtrx)
         vR = squish(v, self.rMtrx)
 
-        #print(r, v, "\n", h, e, "\n", i, j, k, "\n", rR, vR, "\n", self.elements['RP'])
+        #print("results:", rR, vR)
 
         #
         #find total area sweeped by the object inside the sphere of influence
@@ -144,7 +146,7 @@ def swingby(pivot, time, state):
     deltaT = timedelta(seconds = traj.deltaT)
 
     fState = traj.exitState
-    #print(planet.state(time + deltaT))
+    #print(fState)
     fState = np.array(pivot.state(time + deltaT)) + fState
     #print(fState)
 
@@ -164,6 +166,6 @@ if __name__ == '__main__':
     #print(earth.state(d))
     tI = time.time()
     #for i in range(1000):
-    print(swingby(earth, d, [200000,70000,10000,-.5,-6,0]+earth.state(d)))
+    print(swingby(earth, d, [200000,70000,50000,-.5,-6,0]+earth.state(d)))
     #tF = time.time()
     #print("used time: ", tI-tF)
