@@ -91,7 +91,7 @@ class trajectory:
         #rotational momentum direction as k
         k = h / np.linalg.norm(h)
         #figure out j from the first 2 vectors
-        j = -1 * np.cross(k, i)
+        j = np.cross(k, i)
 
         self.rMtrx = np.linalg.inv(np.transpose(np.array([i, j, k])))
 
