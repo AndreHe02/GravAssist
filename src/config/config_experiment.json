@@ -8,7 +8,7 @@
             "name":"SUN",
             "barycenter":"SOLAR SYSTEM BARYCENTER",
             "color":[1.0, 0.6, 0],
-            "radius":3,
+            "radius":0.5,
             "other":{
                 "emissive":1,
                 "make_trail":1,
