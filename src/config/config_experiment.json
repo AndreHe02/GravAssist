@@ -20,7 +20,7 @@
         "MERCURY":{
             "name":"MERCURY",
             "barycenter":"MERCURY BARYCENTER",
-            "color":[1.0, 0.0, 0.0],
+            "color":[1.0, 0.5, 0.5],
             "radius":3,
             "other":{
                 "make_trail":1,
@@ -31,7 +31,7 @@
         "VENUS":{
             "name":"VENUS",
             "barycenter":"VENUS BARYCENTER",
-            "color":[0, 0, 1.0],
+            "color":[0.5, 0.5, 1.0],
             "radius":3,
             "other":{
                 "make_trail":1,
