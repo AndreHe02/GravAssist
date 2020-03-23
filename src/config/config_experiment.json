@@ -1,0 +1,44 @@
+{
+    "root_dir":"C:/Users/andre/Desktop/GravAssist/src",
+    "metadata":"metadata.tm",
+    "mode":"LT+S",
+    "observer":"SOLAR SYSTEM BARYCENTER",
+    "bodies":{
+        "SUN":{
+            "name":"SUN",
+            "barycenter":"SOLAR SYSTEM BARYCENTER",
+            "color":[1.0, 0.6, 0],
+            "radius":1,
+            "other":{
+                "emissive":1,
+                "make_trail":1,
+                "trail_type":"points",
+                "trail_radius":1.6
+            }
+        },
+        
+        "MERCURY":{
+            "name":"MERCURY",
+            "barycenter":"MERCURY BARYCENTER",
+            "color":[1.0, 0.0, 0.0],
+            "radius":1,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        },
+                
+        "VENUS":{
+            "name":"VENUS",
+            "barycenter":"VENUS BARYCENTER",
+            "color":[0, 0, 1.0],
+            "radius":1,
+            "other":{
+                "make_trail":1,
+                "trail_type":"points"
+            }
+        }
+        
+    }
+    
+}
