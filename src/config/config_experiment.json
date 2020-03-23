@@ -8,7 +8,7 @@
             "name":"SUN",
             "barycenter":"SOLAR SYSTEM BARYCENTER",
             "color":[1.0, 0.6, 0],
-            "radius":1,
+            "radius":3,
             "other":{
                 "emissive":1,
                 "make_trail":1,
@@ -21,7 +21,7 @@
             "name":"MERCURY",
             "barycenter":"MERCURY BARYCENTER",
             "color":[1.0, 0.0, 0.0],
-            "radius":1,
+            "radius":3,
             "other":{
                 "make_trail":1,
                 "trail_type":"points"
@@ -32,7 +32,7 @@
             "name":"VENUS",
             "barycenter":"VENUS BARYCENTER",
             "color":[0, 0, 1.0],
-            "radius":1,
+            "radius":3,
             "other":{
                 "make_trail":1,
                 "trail_type":"points"
