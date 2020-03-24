@@ -1,5 +1,5 @@
 {
-    "root_dir":"C:/Users/andre/Desktop/GravAssist/src",
+    "root_dir":"C:/Users/HP/GravAssist/src",
     "metadata":"metadata.tm",
     "mode":"LT+S",
     "observer":"SOLAR SYSTEM BARYCENTER",
@@ -43,7 +43,7 @@
             "name":"EARTH",
             "barycenter":"EARTH BARYCENTER",
             "color":[0, 0, 1.0],
-            "radius":0.1,
+            "radius":8,
             "other":{
                 "make_trail":1,
                 "trail_type":"points"
