@@ -6,6 +6,7 @@ import time
 
 from PIL import Image as Image
 import sys
+import math
 
 IS_PERSPECTIVE = True                               # 透视投影
 VIEW = np.array([-0.8, 0.8, -0.8, 0.8, 1.0, 100.0])  # 视景体的left/right/bottom/top/near/far六个面
@@ -233,14 +234,30 @@ def init(w=640, h=480):
             "Neptune", [.208, .329, .690], materials['gas'], textures['neptune'], .6, [ring(1.8, 2.2)]
             ),}
 
-    print('initted')
-    print(textures)
+    #print('initted')
+    #print(textures)
 
 def rotateTo (fr, to):
     axis = np.cross(fr, to)
     ang = np.arccos(np.dot(fr, to) / (np.linalg.norm(fr) * np.linalg.norm(to)))
-    print("rotate by", ang, "around", axis)
+    #print("rotate by", ang, "around", axis)
     glRotatef(-1 * np.degrees(ang), axis[0], axis[1], axis[2])
+
+def rotateBy (axis, theta):
+    """
+    https://stackoverflow.com/questions/6802577/rotation-of-3d-vector
+    Return the rotation matrix associated with counterclockwise rotation about
+    the given axis by theta radians.
+    """
+    axis = np.asarray(axis)
+    axis = axis / math.sqrt(np.dot(axis, axis))
+    a = math.cos(theta / 2.0)
+    b, c, d = -axis * math.sin(theta / 2.0)
+    aa, bb, cc, dd = a * a, b * b, c * c, d * d
+    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 def hollowDisk(r, R,color, mat, slice=20):
     mat.setMat(color)
@@ -351,6 +368,9 @@ def mouseclick(button, state, x, y):
     global RIGHT_IS_DOWNED
     global MOUSE_X, MOUSE_Y
 
+    global DIST, PHI, THETA
+    #print(DIST, PHI, THETA)
+
     MOUSE_X, MOUSE_Y = x, y
     if button == GLUT_LEFT_BUTTON:
         LEFT_IS_DOWNED = state==GLUT_DOWN
@@ -386,15 +406,16 @@ def mousemotion(x, y):
         dy = y - MOUSE_Y
         MOUSE_X, MOUSE_Y = x, y
 
-        PHI += 2*np.pi*dy/WIN_H
-        PHI %= 2*np.pi
-        THETA += 2*np.pi*dx/WIN_W
-        THETA %= 2*np.pi
-        r = DIST*np.cos(PHI)
+        f = .2
 
-        EYE[1] = DIST*np.sin(PHI)
-        EYE[0] = r*np.sin(THETA)
-        EYE[2] = r*np.cos(THETA)
+        lookTowards = LOOK_AT - EYE
+        lookRight = np.cross(lookTowards, EYE_UP)
+        lookRight /= np.linalg.norm(lookRight)
+
+        EYE += dx * f * lookRight + dy * f * EYE_UP
+        EYE *= DIST / abs(np.linalg.norm(LOOK_AT - EYE))
+
+        DIST, PHI, THETA = getposture()
 
         if 0.5*np.pi < PHI < 1.5*np.pi:
             EYE_UP[1] = -1.0
@@ -408,71 +429,50 @@ def keydown(key, x, y):
     global EYE, LOOK_AT, EYE_UP
     global IS_PERSPECTIVE, VIEW
 
+    SHIFT = 1
+
     lookTo = EYE - LOOK_AT
     lookRight = np.cross(-1 * lookTo, EYE_UP)
+    lookRight /= np.linalg.norm(lookRight)
+    EYE_UP /= np.linalg.norm(EYE_UP)
     #print("up: ", EYE_UP)
     #print("right: ", lookRight)
     #print("to: ", lookTo)
 
     #视景体平移
-    if key in [b'W', b'A', b'S', b'D']:
-        if key == b'W': # 参考点,视点向上
-            shift = EYE_UP * .05
+    if key in [16777248, b'A', 16777250, b'D']:
+        if key == 16777248: # 参考点,视点向上
+            shift = EYE_UP * SHIFT
         elif key == b'A': # 参考点,视点向左
-            shift = lookRight * -.05
-        elif key == b'S': # 参考点，视点向下
-            shift = EYE_UP * -.05
+            shift = lookRight * -1 * SHIFT
+        elif key == 16777250: # 参考点，视点向下
+            shift = EYE_UP * -1 * SHIFT
         elif key == b'D': # 参考点,视点向右
-            shift = lookRight * .05
+            shift = lookRight * SHIFT
 
         LOOK_AT += shift
         EYE += shift
 
-        DIST, PHI, THETA = getposture()
-        glutPostRedisplay()
-
     #参照点按视点当前方位平移
-    elif key in [b'Z', b'C', b'Q', b'E']:
+    elif key in [16777235, 16777237, 16777234, 16777236]:
 
-        if key == b'Z': # 向上旋转
-            shift = EYE_UP * .05
-        elif key == b'C': # 向下旋转
-            shift = EYE_UP * -.05
-        elif key == b'Q': #向左旋转
-            shift = lookRight * -.05
-        elif key == b'E': #向右旋转
-            shift = lookRight * .05
+        if key == 16777235: # 向上旋转
+            shift = EYE_UP * SHIFT
+        elif key == 16777237: # 向下旋转
+            shift = EYE_UP * -1 * SHIFT
+        elif key == 16777234: #向左旋转
+            shift = lookRight * -1 * SHIFT
+        elif key == 16777236: #向右旋转
+            shift = lookRight * SHIFT
 
         LOOK_AT += shift
 
-        DIST, PHI, THETA = getposture()
-        glutPostRedisplay()
     elif key == b' ': # 空格键，切换投影模式
         IS_PERSPECTIVE = not IS_PERSPECTIVE
-        glutPostRedisplay()
 
-if __name__ == "__main__":
+    DIST, PHI, THETA = getposture()
+    #print(DIST, PHI, THETA)
+    glutPostRedisplay()
 
-    #glut general graphics initialization
-    glutInit()
-    displayMode = GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH
-    glutInitDisplayMode(displayMode)
 
-    #glut general window initialization
-    glutInitWindowSize(WIN_W, WIN_H)
-    glutInitWindowPosition(300, 200)
-    glutCreateWindow('test')
-
-    init(WIN_W, WIN_H)                              # 初始化画布
-
-    #glut window functions
-    glutDisplayFunc(draw)               # 注册回调函数draw()
-    glutReshapeFunc(reshape)            # 注册响应窗口改变的函数reshape()
-    glutMouseFunc(mouseclick)           # 注册响应鼠标点击的函数mouseclick()
-    glutMotionFunc(mousemotion)         # 注册响应鼠标拖拽的函数mousemotion()
-    glutKeyboardFunc(keydown)           # 注册键盘输入的函数keydown()
-
-    glutMainLoop()                      # 进入glut主循环
-#————————————————
-#版权声明：本文为CSDN博主「天元浪子」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。
-#原文链接：https://blog.csdn.net/xufive/article/details/86565130
+#部分参考： https://blog.csdn.net/xufive/article/details/86565130

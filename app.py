@@ -1,6 +1,6 @@
 
 import sys
-from PySide2.QtWidgets import QApplication, QLabel, QMainWindow, QAction, QSplashScreen, QDialog
+from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QSplashScreen, QSplitter, QLineEdit
 from PySide2.QtOpenGL import QGLWidget
 from PySide2.QtCore import Slot, qApp, QFile, QTimer, Qt
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap
@@ -10,23 +10,32 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
 import src.visualizeGL as vis
-import datetime
+from datetime import datetime, timedelta
 
+#
+# data related
+#
+
+viewTime = datetime(2001,1,1)
+
+#
+# graphic related
+#
+#list of everything that will be drawn
 drawables = []
+
+#the root window
 
 class Mouse(object):
 
     def __init__(self):
-        self.left = False
-        self.right = False
         self.pos = [0,0]
         self.draggingIn = None
-
 mouse = Mouse()
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, graph):
+    def __init__(self, split):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Window Title")
         self.setWindowIcon(QIcon("assets/icon.png"))
@@ -39,13 +48,24 @@ class MainWindow(QMainWindow):
         geometry = qApp.desktop().availableGeometry(self)
         self.setFixedSize(1024,720)
         self.setMinimumSize(660,500)
-        self.move(50,50)
 
-        print("before adding graph")
+        # the splitter view is in the center
+        self.setCentralWidget(split)
+
+class cntrView(QSplitter):
+
+    def __init__(self, graph):
+        QSplitter.__init__(self, Qt.Horizontal)
+
         #prepare graph
         self.graphWidget = graph
-        self.setCentralWidget(graph)
-        print("central")
+        self.addWidget(graph)
+
+        #add toolbox on the right
+        self.lineEdit = QLineEdit()
+        self.addWidget(self.lineEdit)
+
+        self.setSizes([640,300])
 
     def mousePressEvent(self, e):
         global mouse
@@ -54,8 +74,12 @@ class MainWindow(QMainWindow):
 
         if e.button() == Qt.MouseButton.LeftButton:
             if clicked == self.graphWidget:
+                self.graphWidget.setFocus()
                 mouse.draggingIn = self.graphWidget
                 self.graphWidget.mClick(GLUT_LEFT_BUTTON, GLUT_DOWN, mouse.pos[0], mouse.pos[1])
+
+            elif clicked == self.lineEdit:
+                self.lineEdit.setFocus()
         elif e.button() == Qt.MouseButton.RightButton:
             if clicked == self.graphWidget:
                 mouse.draggingIn = self.graphWidget
@@ -84,9 +108,9 @@ class MainWindow(QMainWindow):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
-            self.close()
+            self.parent().close()
         else:
-            print(e.key())
+            self.graphWidget.kPress(e.key())
 
 
 class glWidget(QGLWidget):
@@ -100,8 +124,9 @@ class glWidget(QGLWidget):
 
     def paintGL(self):
         global drawables
-
+        window.status.showMessage("drawing")
         vis.draw(drawables)
+        window.status.showMessage("solar system at: "+viewTime.strftime("%Y-%m-%d"))
 
     def resizeGL(self, w, h):
         vis.reshape(w, h)
@@ -111,11 +136,11 @@ class glWidget(QGLWidget):
         global drawables
         x = 0
         for i in vis.planets:
-            drawables.append(vis.drawable(vis.planets[i],cvrt([4*x, 1 * x,0]), cvrt([1,-1,0])))
+            drawables.append(vis.drawable(vis.planets[i],cvrt([4*x, 1 * x,0]), cvrt([0,0,1])))
             x += 1
 
-        for i in drawables:
-            print(i.obj," at ", i.pos)
+        #for i in drawables:
+            #print(i.obj," at ", i.pos)
 
     def initializeGL(self):
         if not self.initted:
@@ -130,6 +155,10 @@ class glWidget(QGLWidget):
         vis.mousemotion(x, y)
         self.updateGL()
 
+    def kPress(self, key):
+        vis.keydown(key, 0, 0)
+        self.updateGL()
+
 def cvrt(pos):
     return [pos[0], pos[2], pos[1]]
 
@@ -142,14 +171,20 @@ if __name__ == '__main__':
     loading.setStyleSheet('font-size: 18pt; font-family: Courier; color: rgb(255, 255, 255)')
     loading.showMessage("picture by NASA/JPL-Caltech/Univ. of Arizona\nMars Reconnaissance Orbiter (MRO)\nid: PIA17646")
 
-    #insert spice initializations here
+    #SPICE initializations
 
 
     #construct gl widget
+    global gl
     gl = glWidget()
 
+    #construct central splitter view
+    global splitter
+    splitter = cntrView(gl)
+
     #initialize main window
-    window = MainWindow(gl)
+    global window
+    window = MainWindow(splitter)
 
     window.show()
     #splash.close()
