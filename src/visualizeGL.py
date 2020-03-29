@@ -9,7 +9,7 @@ import sys
 import math
 
 IS_PERSPECTIVE = True                               # 透视投影
-VIEW = np.array([-0.8, 0.8, -0.8, 0.8, 1.0, 100.0])  # 视景体的left/right/bottom/top/near/far六个面
+VIEW = np.array([-0.8, 0.8, -0.8, 0.8, 1.0, 500.0])  # 视景体的left/right/bottom/top/near/far六个面
 SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
 EYE = np.array([0.0, 0.0, 10.0])                     # 眼睛的位置（默认z轴的正方向）
 LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
@@ -18,6 +18,8 @@ WIN_W, WIN_H = 640, 480                             # 保存窗口宽度和高�
 LEFT_IS_DOWNED = False                              # 鼠标左键被按下
 RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
 MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
+
+celesScale = 4.4 / 149597870
 
 def readTex(filename):
     t = time.time()
@@ -72,15 +74,19 @@ class material(object):
     #glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, )
 
 class drawable(object):
-    def __init__(self, obj, pos, up = None):
+    def __init__(self, obj, pos = [], up = None):
         super(drawable, self).__init__()
         self.obj = obj
         self.pos = pos
         self.up = up
 
     def draw(self):
-        self.obj.draw(self.pos, self.up)
-
+        global celesScale
+        if type(self.obj).__name__ == 'celes':
+            self.obj.draw(np.array([self.pos[0], self.pos[2], self.pos[1]])*celesScale,
+                np.array([self.up[0], self.up[2], self.up[1]])*celesScale)
+        else:
+            self.obj.draw()
 
 class drawableType(object):
 
@@ -98,6 +104,7 @@ class celes(drawableType):
         self.tex = tex
         self.r = r
         self.rings = rings
+        self.body = None
 
     def draw(self, pos, up):
         glEnable(GL_TEXTURE_2D)
@@ -119,17 +126,54 @@ class celes(drawableType):
 
 class orbit(drawableType):
 
-    def __init__(self, color, foc, ecc, a, angleIn=0, angleOut=0):
+    def __init__(self, color, foc, mtrx, a, ecc, angleIn=None, angleOut=None):
         super(orbit, self).__init__()
+
+        global celesScale
+
         self.color = color
-        self.foc = foc
+        self.foc = np.array(foc) * celesScale
+        self.mtrx = mtrx
+        self.a = a * celesScale
         self.ecc = ecc
-        self.a = a
         self.angleIn = angleIn
         self.angleOut = angleOut
 
-    def draw(pos):
-        pass
+    def draw(self):
+        invMtrx = np.linalg.inv(self.mtrx)
+
+        if self.angleIn == None:
+            lo = -1 * np.pi
+        if self.angleOut == None:
+            hi = np.pi
+        angs = np.linspace(lo, hi, num = 50)
+        locations = []
+
+        #get vertices
+        for i in angs:
+            dist = abs(self.a * (1 - self.ecc**2) / (1 + self.ecc * np.cos(i))) #vis viva equation
+            #print(dist)
+            locations.append(np.array([[dist * np.cos(i), dist * np.sin(i), 0]]))
+
+        glDisable(GL_TEXTURE_2D)
+        origWidth = glGetFloatv(GL_LINE_WIDTH)
+        glLineWidth(3)
+        glPushMatrix()
+        glTranslate(self.foc[0], self.foc[2], self.foc[1])
+
+        #set appearance
+        global materials
+        materials['graphElement'].setMat([self.color[0]/255, self.color[1]/255, self.color[2]/255])
+        glColor3f(self.color[0]/255, self.color[1]/255, self.color[2]/255)
+        #draw
+        glBegin(GL_LINE_LOOP)
+        for i in locations:
+            temp = np.matmul(invMtrx, np.transpose(i))
+            #print(i)
+            glVertex3f(temp[0], temp[2], temp[1])
+        glEnd()
+        glPopMatrix()
+        glLineWidth(origWidth)
 
 class arrow(drawableType):
     def __init__(self, color, vec):
@@ -207,7 +251,7 @@ def init(w=640, h=480):
 
     planets = {
         "SUN": celes(
-            "Sun", [0.996, .434, 0], materials['star'], textures['sun'], 1.5, []
+            "Sun", [0.996, .434, 0], materials['star'], textures['sun'], 1.2, []
             ),
         "MERCURY": celes(
             "Mercury", [0, 0, 0], materials['rock'], textures['mercury'], .4, []
@@ -320,18 +364,18 @@ def draw(drawables = []):
     glBegin(GL_LINES)
     # 以红色绘制x轴
     materials["graphElement"].setMat([1,0,0])       # 设置当前颜色为红色不透明
-    glVertex3f(-0.8, 0.0, 0.0)                      # 设置x轴顶点（x轴负方向）
-    glVertex3f(0.8, 0.0, 0.0)                       # 设置x轴顶点（x轴正方向）
+    glVertex3f(-2.8, 0.0, 0.0)                      # 设置x轴顶点（x轴负方向）
+    glVertex3f(2.8, 0.0, 0.0)                       # 设置x轴顶点（x轴正方向）
 
     # 以绿色绘制y轴
     materials["graphElement"].setMat([0,1,0])       # 设置当前颜色为绿色不透明
-    glVertex3f(0.0, -0.8, 0.0)                      # 设置y轴顶点（y轴负方向）
-    glVertex3f(0.0, 0.8, 0.0)                       # 设置y轴顶点（y轴正方向）
+    glVertex3f(0.0, -2.8, 0.0)                      # 设置y轴顶点（y轴负方向）
+    glVertex3f(0.0, 2.8, 0.0)                       # 设置y轴顶点（y轴正方向）
 
     # 以蓝色绘制z轴
     materials["graphElement"].setMat([0,0,1])       # 设置当前颜色为蓝色不透明
-    glVertex3f(0.0, 0.0, -0.8)                      # 设置z轴顶点（z轴负方向）
-    glVertex3f(0.0, 0.0, 0.8)                       # 设置z轴顶点（z轴正方向）
+    glVertex3f(0.0, 0.0, -2.8)                      # 设置z轴顶点（z轴负方向）
+    glVertex3f(0.0, 0.0, 2.8)                       # 设置z轴顶点（z轴正方向）
 
     glEnd()                              # 结束绘制线段
 

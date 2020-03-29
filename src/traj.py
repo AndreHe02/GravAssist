@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 
 #spiceypy
-from SPICE.ephemeris import ephemeris
+from src.SPICE.ephemeris import ephemeris
 import spiceypy as sp
 
 #math and data types
@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn')
 
 #fellow classes
-from body import body
+from src.body import body
 
 #raise error when having invalid values
 np.seterr('raise')
@@ -88,17 +88,22 @@ class trajectory:
 
         #eccentricity direction as i
         i = e / np.linalg.norm(e)
+        self.eccVec = i
         #rotational momentum direction as k
         k = h / np.linalg.norm(h)
+        self. up = k
         #figure out j from the first 2 vectors
         j = np.cross(k, i)
 
-        self.rMtrx = np.linalg.inv(np.transpose(np.array([i, j, k])))
+        self.rMtrx = np.array([i, j, k])
 
         #print("ijk:", i, j, k)
         #transform 3d coordinate to 2d coordinate
         rR = squish(r, self.rMtrx)
         vR = squish(v, self.rMtrx)
+
+        if(self.elements['ECC']<=1):
+            return
 
         #print("results:", rR, vR)
 
