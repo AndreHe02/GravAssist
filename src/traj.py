@@ -58,6 +58,9 @@ class trajectory:
     #state is relative to the sun
     #
     def __init__(self,body,time,state):
+
+        self.body = body
+
         self.GM = body.Gmass[0]
 
         #output vars explanation
@@ -102,6 +105,9 @@ class trajectory:
         rR = squish(r, self.rMtrx)
         vR = squish(v, self.rMtrx)
 
+        self.angleIn = None
+        self.angleOut = None
+
         if(self.elements['ECC']<=1):
             return
 
@@ -140,6 +146,13 @@ class trajectory:
 
         #print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
 
+        if E >= 1:
+            self.angleIn = angleFromR(r, self)
+            self.angleOut = angleFromR(self.exitState[0:3], self)
+
+def angleFromR(r, trajectory):
+    rR = squish(r, trajectory.mtrx)
+    return np.arctan2(rR[1], rR[0])
 
 def swingby(pivot, time, state):
 

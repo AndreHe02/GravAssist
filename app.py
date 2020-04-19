@@ -1,6 +1,8 @@
 
 import sys
-from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QSplashScreen, QSplitter, QLineEdit, QGridLayout, QWidget, QPushButton, QCalendarWidget, QLabel, QVBoxLayout, QSizePolicy
+#from PySide2.QtWidgets import *
+from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QSplashScreen, QSplitter, QLineEdit, QGridLayout, QWidget, QPushButton, QMessageBox
+from PySide2.QtWidgets import QCalendarWidget, QTreeWidget, QStackedWidget, QLabel, QVBoxLayout, QSizePolicy, QComboBox, QSlider, QTreeWidgetItem
 from PySide2.QtOpenGL import QGLWidget
 from PySide2.QtCore import Slot, qApp, QFile, QTimer, Qt, QDate
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap
@@ -28,7 +30,42 @@ viewTime = datetime(2001,6,1)
 drawables = []
 defaultTrajColor = [130, 184, 97]
 
-#the root window
+class path(object):
+
+    def __init__(self, launchTime, deltaV, duration, entranceTimes, trajectories):
+        #this is just for demo
+        self.launch = launchTime
+
+        #other basic info for display
+        self.deltaV = deltaV
+
+        #in timedelta form
+        self.duration = duration
+
+        #a list of times on which the probe enters a trajectory,
+        #the length of this array should match that of the length of trajectories
+        self.entranceTimes = entranceTimes
+        self.trajectories = trajectories
+
+        self.flyby = []
+        for i in self.trajectories:
+            self.flyby.append(i.body.name)
+
+    #what angle is the probe in relative to the current eccentricity vector at 'time'
+    def getPosition(self, time):
+        pass
+
+    #what trajectory is the probe in at 'time'
+    def getTrajectory(self, time):
+        pass
+
+#calculate path
+def calculatePath(departure, arrival, earliest, latest):
+    #just for demo purposes, the real thing should end up in a list
+    global ephem
+    return [path(datetime(2001,1,1), 69, timedelta(days=420), datetime(2001,1,1),
+        [trajectory (ephem.get_body('SUN'), datetime(2001,1,1), ephem.get_body('EARTH').state(datetime(2001,1,1)))])
+    ]
 
 class Mouse(object):
 
@@ -39,7 +76,7 @@ mouse = Mouse()
 
 class MainWindow(QMainWindow):
 
-    def __init__(self, split):
+    def __init__(self):
         super(MainWindow, self).__init__()
         self.setWindowTitle("Grav Assist Simulator")
 
@@ -52,8 +89,35 @@ class MainWindow(QMainWindow):
         if geometry.width() > 1024 and geometry.height() > 720:
             self.setGeometry(50,50,1024,720)
 
-        # the splitter view is in the center
-        self.setCentralWidget(split)
+        tbox = Toolbox()
+        gl1 = glWidget()
+        gl2 = glWidget()
+
+        self.splitter = cntrView(gl1, tbox)
+        self.player = plyrView(gl2)
+
+        self.stacked = QStackedWidget()
+        self.stacked.addWidget(self.splitter)
+        self.stacked.addWidget(self.player)
+
+        self.setCentralWidget(self.stacked)
+
+        self.useSplitter()
+
+    def useSplitter(self):
+        self.stacked.setCurrentWidget(self.splitter)
+
+    def usePlayer(self):
+        global selectedSolution
+        if selectedSolution == None:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText("You need to choose a particular solution!")
+            msg.setStandardButtons(QMessageBox.Ok)
+            retval = msg.exec_()
+        else:
+            self.player.notifyChange()
+            self.stacked.setCurrentWidget(self.player)
 
 class cntrView(QSplitter):
 
@@ -112,7 +176,8 @@ class cntrView(QSplitter):
 
     def keyPressEvent(self, e):
         if e.key() == Qt.Key_Escape:
-            self.parent().close()
+            #self.parent().close()
+            pass
         else:
             self.graphWidget.kPress(e.key())
 
@@ -123,23 +188,12 @@ class Toolbox(QWidget):
         self.setLayout(self.layout)
         self.content = []
 
-        #add elements
-        #def addWidget (arg__1, row, column, rowSpan, columnSpan[, alignment=Qt.Alignment()])
-        #def addWidget (arg__1, row, column[, alignment=Qt.Alignment()])
-
-        #animate button
-        animate = QPushButton('animate', self)
-        animate.setToolTip('start animation')
-        animate.clicked.connect(self.anim)
-        self.animate = animate
-        self.layout.addWidget(animate, 3, 1, rowSpan = 1, columnSpan = 2)
-
         #label
         l1 = QLabel()
-        l1.setText("start time")
+        l1.setText("earliest departure")
         l1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         #l1.setFixedHeight(30)
-        self.layout.addWidget(l1, 1, 1)
+        self.layout.addWidget(l1, 0, 0)
         #calendar1
         calendar1 = QCalendarWidget()
         calendar1.setGridVisible(True)
@@ -148,13 +202,13 @@ class Toolbox(QWidget):
         calendar1.setFixedSize(200,200)
         #calendar1.clicked.connect(self.showDate)
         self.calendar1 = calendar1
-        self.layout.addWidget(calendar1, 2, 1)
+        self.layout.addWidget(calendar1, 1, 0)
         #label
         l2 = QLabel()
-        l2.setText("end time")
+        l2.setText("latest departure")
         l2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         #l2.setFixedHeight(30)
-        self.layout.addWidget(l2, 1, 2)
+        self.layout.addWidget(l2, 0, 1)
         #calendar2
         calendar2 = QCalendarWidget()
         calendar2.setGridVisible(True)
@@ -163,12 +217,94 @@ class Toolbox(QWidget):
         calendar2.setFixedSize(200,200)
         #calendar2.clicked.connect(self.showDate)
         self.calendar2 = calendar2
-        self.layout.addWidget(calendar2, 2, 2)
+        self.layout.addWidget(calendar2, 1, 1)
 
         l3 = QLabel()
-        self.layout.addWidget(l3, 4, 1)
+        l3.setText('departure from')
+        self.layout.addWidget(l3, 2, 0)
+
+        #departure selector
+        self.departure = QComboBox()
+        self.departure.addItems(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'])
+        self.layout.addWidget(self.departure, 2, 1)
+
+        l4 = QLabel()
+        l4.setText('arrive at')
+        self.layout.addWidget(l4, 3, 0)
+
+        #arrival selector
+        self.arrival = QComboBox()
+        self.arrival.addItems(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'])
+        self.layout.addWidget(self.arrival, 3, 1)
+
+        #calculate button
+        self.calculate = QPushButton('calculate path', self)
+        self.calculate.clicked.connect(self.report)
+        self.layout.addWidget(self.calculate, 4, 0, rowSpan = 1, columnSpan = 2)
+
+        #list of solutions
+        l5 = QLabel()
+        l5.setText('available paths')
+        self.layout.addWidget(l5, 5, 0)
+        self.solutions = QTreeWidget()
+        hd = QTreeWidgetItem()
+        self.solutions.setHeaderLabels(['launch','deltaV (km/s)', 'duration (yr)', 'flyby'])
+
+        self.layout.addWidget(self.solutions, 6, 0, 1, 2)
+
+        global selectedSolution
+        selectedSolution = None
+
+        #animate button
+        self.animate = QPushButton('view animated', self)
+        self.animate.clicked.connect(self.anim)
+        self.layout.addWidget(self.animate, 7, 0, rowSpan = 1, columnSpan = 2)
+
+    def report(self):
+        earliest = self.calendar1.selectedDate().toPython()
+        latest = self.calendar2.selectedDate().toPython()
+        if earliest > latest:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('latest departure should come after earliest departure')
+            msg.setStandardButtons(QMessageBox.Ok)
+            retval = msg.exec_()
+            return
+        depart = self.departure.currentText()
+        arrive = self.arrival.currentText()
+        if depart == arrive:
+            msg = QMessageBox()
+            msg.setIcon(QMessageBox.Information)
+            msg.setText('departure must be different from arrival')
+            msg.setStandardButtons(QMessageBox.Ok)
+            retval = msg.exec_()
+            return
+        print('calculate the optimal path from', depart,' to ', arrive, ' that starts some time between ', earliest,' and ', latest)
+
+        #calculation
+        global results
+        results = calculatePath(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest)
+        #update solutions list
+        self.solutions.clear()
+        for i in results:
+            iItem = QTreeWidgetItem([
+                i.launch.strftime('%Y.%m.%d'),
+                str(i.deltaV),
+                str(i.duration.total_seconds()/ 31556952),
+                ', '.join(i.flyby)
+            ])
+            self.solutions.addTopLevelItem(iItem)
 
     def anim(self):
+        global results
+        global selectedSolution
+
+        selectedSolution = results[self.solutions.indexFromItem(self.solutions.currentItem()).row()]
+
+        global window
+        window.usePlayer()
+
+        """
         global gl
         global viewTime
         s = self.calendar1.selectedDate().toPython()
@@ -176,7 +312,194 @@ class Toolbox(QWidget):
         print(s, f)
         if s < f:
             viewTime = s
-            gl.animate(self.calendar2.selectedDate().toPython())
+            gl.animate(self.calendar2.selectedDate().toPython())"""
+
+
+class plyrView(QWidget):
+    def __init__(self, graph):
+        QWidget.__init__(self, None)
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
+
+        #animate button
+        self.back = QPushButton('back', self)
+        self.back.setToolTip('go back to input page')
+        self.back.clicked.connect(self.switch)
+        self.layout.addWidget(self.back, 0, 0)
+
+        #screen
+        self.graphWidget = graph
+        self.layout.addWidget(graph, 1, 0, 1, 8)
+        self.graphWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+        #progress slider
+        self.progress = QSlider(Qt.Horizontal)
+        self.progress.valueChanged.connect(self.progressSld)
+        self.layout.addWidget(self.progress, 2, 1, 2, 1)
+
+        #play/pause button
+        self.isPlaying = False
+        self.wasPlaying = False
+        self.play = QPushButton('play', self)
+        self.play.setToolTip('play/pause')
+        self.play.clicked.connect(self.playBtn)
+        self.play.setStyleSheet('QPushButton {font-weight: bold;}')
+        self.layout.addWidget(self.play, 2, 0, 2, 1)
+
+        #speed button
+        spdLbl = QLabel()
+        spdLbl.setText("video speed: ")
+        spdLbl.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.layout.addWidget(spdLbl, 2, 2)
+        self.speed = QPushButton('1 day/second')
+        self.speed.setToolTip('change playing speed')
+        self.speed.clicked.connect(self.changeSpd)
+        self.layout.addWidget(self.speed, 3, 2)
+        self.vidSpeed = 24 # in hours per second
+
+        #view mode button
+        mdLbl = QLabel()
+        mdLbl.setText('camera mode')
+        self.layout.addWidget(mdLbl, 2, 3)
+        self.mode = QComboBox()
+        self.mode.addItems(['chase','fixed','flyby'])
+        self.mode.currentIndexChanged.connect(self.setMode)
+        self.layout.addWidget(self.mode, 3, 3)
+
+        #info button
+        self.info = QPushButton('info')
+        self.info.setToolTip('show info about path')
+        self.info.clicked.connect(self.showInfo)
+        self.layout.addWidget(self.info, 3, 4)
+
+    def notifyChange(self):
+        global selectedSolution
+        ss = selectedSolution
+
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(ss.duration.total_seconds())
+
+
+    def playBtn(self):
+        if self.isPlaying == True:
+            self.pauseVid()
+        else:
+            self.playVid()
+
+    def playVid(self):
+        #print('playing')
+        self.play.setText('pause')
+        self.play.show()
+
+        global viewTime
+        global selectedSolution
+        viewTime = selectedSolution.launch + timedelta(seconds=self.progress.value())
+
+        self.graphWidget.paintGL()
+
+        self.isPlaying = True
+        self.wasPlaying = True
+
+    def pauseVid(self):
+        #print('pausing')
+        self.play.setText('play')
+        self.play.show()
+        self.isPlaying = False
+        self.wasPlaying = False
+
+    def progressSld(self):
+        self.wasPlaying = self.isPlaying
+        size = self.progress.value()
+        self.pauseVid()
+        #leap
+            #apfjepifaep
+        if self.wasPlaying:
+            self.playVid()
+
+    def changeSpd(self):
+        self.wasPlaying = self.isPlaying
+        self.pauseVid()
+        #change the speed here
+            #apejfaioejfaper
+        if self.wasPlaying:
+            self.playVid()
+
+    def setMode(self):
+        self.wasPlaying = self.isPlaying
+        self.pauseVid()
+        print(self.mode.currentText(), self.mode.currentIndex())
+        self.vidMode = self.mode.currentIndex()
+
+        if self.wasPlaying:
+            self.playVid()
+
+    def showInfo(self):
+        self.wasPlaying = self.isPlaying
+        self.pauseVid()
+        #show info here
+            #apejfaioejfaper
+        if self.wasPlaying:
+            self.playVid()
+
+    def switch(self):
+        global window
+        window.useSplitter()
+
+    def mousePressEvent(self, e):
+        global mouse
+        clicked = self.childAt(mouse.pos[0], mouse.pos[1])
+        mouse.pos = [e.x(), e.y()]
+
+        if e.button() == Qt.MouseButton.LeftButton:
+            if clicked == self.graphWidget:
+                self.graphWidget.setFocus()
+                mouse.draggingIn = self.graphWidget
+                self.graphWidget.mClick(GLUT_LEFT_BUTTON, GLUT_DOWN, mouse.pos[0], mouse.pos[1])
+
+                self.wasPlaying = self.isPlaying
+                self.pauseVid()
+            else:
+                mouse.draggingIn = None
+        elif e.button() == Qt.MouseButton.RightButton:
+            if clicked == self.graphWidget:
+                mouse.draggingIn = self.graphWidget
+                self.graphWidget.mClick(GLUT_RIGHT_BUTTON, GLUT_DOWN, mouse.pos[0], mouse.pos[1])
+
+                self.wasPlaying = self.isPlaying
+                self.pauseVid()
+            else:
+                mouse.draggingIn = None
+
+    def mouseReleaseEvent(self, e):
+        global mouse
+        clicked = self.childAt(mouse.pos[0], mouse.pos[1])
+        mouse.pos = [e.x(), e.y()]
+
+        if e.button() == Qt.MouseButton.LeftButton:
+            if clicked == self.graphWidget:
+                mouse.draggingIn = None
+                self.graphWidget.mClick(GLUT_LEFT_BUTTON, GLUT_UP, mouse.pos[0], mouse.pos[1])
+
+                if self.wasPlaying == True:
+                    self.playVid()
+        elif e.button() == Qt.MouseButton.RightButton:
+            if clicked == self.graphWidget:
+                mouse.draggingIn = None
+                self.graphWidget.mClick(GLUT_RIGHT_BUTTON, GLUT_UP, mouse.pos[0], mouse.pos[1])
+
+                if self.wasPlaying == True:
+                    self.playVid()
+    def mouseMoveEvent(self, e):
+        #print(e)
+        mouse.pos = [e.x(), e.y()]
+        if self.childAt(mouse.pos[0], mouse.pos[1]) == self.graphWidget:
+            self.graphWidget.mDrag(mouse.pos[0], mouse.pos[1])
+
+    def keyPressEvent(self, e):
+        if e.key() == Qt.Key_Escape:
+            self.parent().close()
+        else:
+            self.graphWidget.kPress(e.key())
 
 class glWidget(QGLWidget):
 
@@ -186,10 +509,17 @@ class glWidget(QGLWidget):
         self.makeCurrent()
         self.initted = False
         self.initializeGL()
+        self.solution = None
+
+    def setSolution(self, solution):
+        self.solution = solution
 
     def paintGL(self):
         global drawables
+        global window
         window.status.showMessage("drawing")
+
+        global viewTime
 
         #all the planets
         for i in vis.planets:
@@ -210,6 +540,13 @@ class glWidget(QGLWidget):
 
             #                                                      position                 upwards direction
             drawables.append(vis.drawable(vis.planets[i], vis.planets[i].body.state(viewTime)[0:3], up))
+
+        #all other trajectories
+        global selectedSolution
+        if not selectedSolution == None:
+            for i in selectedSolution.trajectories:
+                iOrbit = vis.orbit([255,255,255], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
+                drawables.append(vis.drawable(iOrbit))
 
         vis.draw(drawables)
         drawables = []
@@ -263,20 +600,9 @@ if __name__ == '__main__':
     root_dir = os.path.abspath(os.getcwd())
     ephem = ephemeris(sp, root_dir)
 
-    #construct gl widget
-    global gl
-    gl = glWidget()
-
-    global tbox
-    tbox = Toolbox()
-
-    #construct central splitter view
-    global splitter
-    splitter = cntrView(gl, tbox)
-
     #initialize main window
     global window
-    window = MainWindow(splitter)
+    window = MainWindow()
 
     window.show()
     #splash.close()

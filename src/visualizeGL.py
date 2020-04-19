@@ -126,7 +126,7 @@ class celes(drawableType):
 
 class orbit(drawableType):
 
-    def __init__(self, color, foc, mtrx, a, ecc, angleIn=None, angleOut=None):
+    def __init__(self, color, foc, mtrx, a, ecc, angleIn = None, angleOut = None):
         super(orbit, self).__init__()
 
         global celesScale
@@ -144,9 +144,13 @@ class orbit(drawableType):
 
         if self.angleIn == None:
             lo = -1 * np.pi
+        else:
+            lo = self.angleIn
         if self.angleOut == None:
             hi = np.pi
-        angs = np.linspace(lo, hi, num = 50)
+        else:
+            hi = self.angleOut
+        angs = np.linspace(lo, hi, num = 100)
         locations = []
 
         #get vertices
@@ -166,7 +170,10 @@ class orbit(drawableType):
         materials['graphElement'].setMat([self.color[0]/255, self.color[1]/255, self.color[2]/255])
         glColor3f(self.color[0]/255, self.color[1]/255, self.color[2]/255)
         #draw
-        glBegin(GL_LINE_LOOP)
+        if self.angleIn == None:
+            glBegin(GL_LINE_LOOP)
+        else:
+            glBegin(GL_LINE_STRIP)
         for i in locations:
             temp = np.matmul(invMtrx, np.transpose(i))
             #print(i)
