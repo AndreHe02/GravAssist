@@ -60,6 +60,7 @@ class trajectory:
     def __init__(self,body,time,state):
 
         self.body = body
+        self.entranceState = state
 
         self.GM = body.Gmass[0]
 
@@ -108,6 +109,11 @@ class trajectory:
         self.angleIn = None
         self.angleOut = None
 
+
+        # dA/dt = r * v / 2
+        arealVelocity = mag(rR) * mag(vR) / 2
+        self.av = arealVelocity
+
         if(self.elements['ECC']<=1):
             return
 
@@ -128,8 +134,6 @@ class trajectory:
         Area = lambda r: 2 * abs (quad(lambda x: math.sqrt(x**2-A**2), X(r[0]), X(RP))[0] * math.sqrt(E**2 - 1) + .5 * np.sign(r[0])*abs(r[0]*r[1]) )
         #print(Area(rR))
 
-        # dA/dt = r * v / 2
-        arealVelocity = mag(rR) * mag(vR) / 2
         self.deltaT = Area(rR)/ arealVelocity
         """
         #exit state using symmetry

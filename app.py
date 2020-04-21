@@ -22,7 +22,7 @@ import src.visualizeGL as vis
 #
 # data related
 #
-viewTime = datetime(2001,6,1)
+viewTime = datetime(2001,1,1)
 #
 # graphic related
 #
@@ -51,19 +51,33 @@ class path(object):
         for i in self.trajectories:
             self.flyby.append(i.body.name)
 
-    #what angle is the probe in relative to the current eccentricity vector at 'time'
-    def getPosition(self, time):
-        pass
+    #what absolute position is the probe at 'time'
+    def getPosition(self, flightTime):
+        t = self.getTrajTime(flightTime)
+        traj = self.getTrajectory(flightTime)
+
+        area = traj.av * t
+        absTime = self.launch+timedelta(seconds=flightTime)
+        #print('t: ', self.launch+timedelta(seconds=flightTime))
+        #print('tName: ', type(absTime).__name__)
+        return np.array(traj.body.state(absTime)[0:3]) + np.array(sp.prop2b(traj.GM, traj.entranceState, t)[0:3])
 
     #what trajectory is the probe in at 'time'
-    def getTrajectory(self, time):
-        pass
+    def getTrajectory(self, flightTime):
+        for i, e in reversed(list(enumerate(self.entranceTimes))):
+            if flightTime >= (e - self.launch).total_seconds():
+                return self.trajectories[i]
 
-#calculate path
+    #time in orbit
+    def getTrajTime(self, flightTime):
+        for i, e in reversed(list(enumerate(self.entranceTimes))):
+            if flightTime >= (e - self.launch).total_seconds():
+                return flightTime - (e-self.launch).total_seconds()
+
 def calculatePath(departure, arrival, earliest, latest):
     #just for demo purposes, the real thing should end up in a list
     global ephem
-    return [path(datetime(2001,1,1), 69, timedelta(days=420), datetime(2001,1,1),
+    return [path(datetime(2001,1,1), 69, timedelta(days=420), [datetime(2001,1,1)],
         [trajectory (ephem.get_body('SUN'), datetime(2001,1,1), ephem.get_body('EARTH').state(datetime(2001,1,1)))])
     ]
 
@@ -547,6 +561,9 @@ class glWidget(QGLWidget):
             for i in selectedSolution.trajectories:
                 iOrbit = vis.orbit([255,255,255], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
                 drawables.append(vis.drawable(iOrbit))
+            deltaT = (viewTime - selectedSolution.launch).total_seconds()
+            print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
+            #print('------')
 
         vis.draw(drawables)
         drawables = []
