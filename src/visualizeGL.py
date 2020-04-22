@@ -9,7 +9,7 @@ import sys
 import math
 
 IS_PERSPECTIVE = True                               # 透视投影
-VIEW = np.array([-0.8, 0.8, -0.8, 0.8, 1.0, 500.0])  # 视景体的left/right/bottom/top/near/far六个面
+VIEW = np.array([-0.5, 0.5, -0.5, 0.5, .5, 500.0])  # 视景体的left/right/bottom/top/near/far六个面
 SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
 EYE = np.array([0.0, 0.0, 10.0])                     # 眼睛的位置（默认z轴的正方向）
 LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
@@ -20,6 +20,9 @@ RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
 MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
 
 celesScale = 4.4 / 149597870
+
+scalingArm = np.linalg.norm(LOOK_AT - EYE)
+CONST_SCALE_ON = True
 
 def readTex(filename):
     t = time.time()
@@ -85,6 +88,8 @@ class drawable(object):
         if type(self.obj).__name__ == 'celes':
             self.obj.draw(np.array([self.pos[0], self.pos[2], self.pos[1]])*celesScale,
                 np.array([self.up[0], self.up[2], self.up[1]])*celesScale)
+        elif type(self.obj).__name__ == 'probe':
+            self.obj.draw(np.array(self.pos[0], self.pos[2], self.pos[1])*celesScale)
         else:
             self.obj.draw()
 
@@ -116,13 +121,30 @@ class celes(drawableType):
         glTranslate(pos[0], pos[1], pos[2])
         rotateTo([0,0,1], up)
 
+        global CONST_SCALE_ON
+        constScale = 1
+        if CONST_SCALE_ON:
+            global scalingArm
+            global LOOK_AT
+            global EYE
+            currArm = np.linalg.norm(LOOK_AT - EYE)
+            if currArm < scalingArm:
+                constScale = currArm / scalingArm
+
         glBindTexture(GL_TEXTURE_2D, self.tex)
-        sphere(qobj, self.r, self.emit, self.mat)
+        sphere(qobj, self.r * constScale, self.emit, self.mat)
         gluDeleteQuadric(qobj)
 
         for i in self.rings:
-            hollowDisk (i.r * self.r, i.R * self.r, self.emit, self.mat)
+            hollowDisk (i.r * self.r * constScale, i.R * self.r * constScale, self.emit, self.mat)
         glPopMatrix()
+
+class probe(drawableType):
+    def __init__(self):
+        super(probe, self).__init__()
+
+    def draw(self, pos):
+        pass
 
 class orbit(drawableType):
 
@@ -258,31 +280,31 @@ def init(w=640, h=480):
 
     planets = {
         "SUN": celes(
-            "Sun", [0.996, .434, 0], materials['star'], textures['sun'], 1.2, []
+            "Sun", [0.996, .434, 0], materials['star'], textures['sun'], 1, []
             ),
         "MERCURY": celes(
-            "Mercury", [0, 0, 0], materials['rock'], textures['mercury'], .4, []
+            "Mercury", [0, 0, 0], materials['rock'], textures['mercury'], .3, []
             ),
         "VENUS": celes(
-            "Venus", [0,0,0], materials['rock'], textures['venus'], .45, []
+            "Venus", [0,0,0], materials['rock'], textures['venus'], .35, []
             ),
         "EARTH": celes(
-            "Earth", [0,0,0], materials['rock'], textures['earth'], .5, []
+            "Earth", [0,0,0], materials['rock'], textures['earth'], .4, []
             ),
         "MARS": celes(
-            "Mars", [0,0,0], materials['rock'], textures['mars'], .5, []
+            "Mars", [0,0,0], materials['rock'], textures['mars'], .4, []
             ),
         "JUPITER": celes(
-            "Jupiter", [.727, .641, .551], materials['gas'], textures['jupiter'], .85, []
+            "Jupiter", [.727, .641, .551], materials['gas'], textures['jupiter'], .7, []
             ),
         "SATURN": celes(
-            "Saturn", [1, .914, .797], materials['gas'], textures['saturn'], .75, [ring(1.5, 2), ring(2.1, 2.3)]
+            "Saturn", [1, .914, .797], materials['gas'], textures['saturn'], .8, [ring(1.5, 2), ring(2.1, 2.3)]
             ),
         "URANUS": celes(
-            "Uranus", [.616, .820, .847], materials['gas'], textures['uranus'], .6, [ring(2.1, 2.3)]
+            "Uranus", [.616, .820, .847], materials['gas'], textures['uranus'], .65, [ring(2.1, 2.3)]
             ),
         "NEPTUNE": celes(
-            "Neptune", [.208, .329, .690], materials['gas'], textures['neptune'], .6, [ring(1.8, 2.2)]
+            "Neptune", [.208, .329, .690], materials['gas'], textures['neptune'], .65, [ring(1.8, 2.2)]
             ),}
 
     #print('initted')
