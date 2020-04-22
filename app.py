@@ -29,6 +29,7 @@ viewTime = datetime(2001,1,1)
 #list of everything that will be drawn
 drawables = []
 defaultTrajColor = [130, 184, 97]
+trajColors = [[255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255]]
 
 framerate = 30.0
 
@@ -64,6 +65,16 @@ class path(object):
         #print('tName: ', type(absTime).__name__)
         return np.array(traj.body.state(absTime)[0:3]) + np.array(sp.prop2b(traj.GM, traj.entranceState, t)[0:3])
 
+    def getRelPosition(self, flightTime):
+        t = self.getTrajTime(flightTime)
+        traj = self.getTrajectory(flightTime)
+
+        area = traj.av * t
+        absTime = self.launch+timedelta(seconds=flightTime)
+        #print('t: ', self.launch+timedelta(seconds=flightTime))
+        #print('tName: ', type(absTime).__name__)
+        return np.array(sp.prop2b(traj.GM, traj.entranceState, t)[0:3])
+
     #what trajectory is the probe in at 'time'
     def getTrajectory(self, flightTime):
         for i, e in reversed(list(enumerate(self.entranceTimes))):
@@ -79,8 +90,13 @@ class path(object):
 def calculatePath(departure, arrival, earliest, latest):
     #just for demo purposes, the real thing should end up in a list
     global ephem
-    return [path(datetime(2001,1,1), 69, timedelta(days=420), [datetime(2001,1,1)],
-        [trajectory (ephem.get_body('SUN'), datetime(2001,1,1), ephem.get_body('EARTH').state(datetime(2001,1,1)))])
+    return [path(datetime(2001,1,1), #launch
+        69, #deltaV
+        timedelta(days=420), #duration
+        [datetime(2001,1,1), datetime(2001,6,1)], #entrance
+        [trajectory (ephem.get_body('SUN'), datetime(2001,1,1), ephem.get_body('EARTH').state(datetime(2001,1,1))),
+            trajectory(ephem.get_body('EARTH'), datetime(2001,6,1),
+                ephem.get_body('MOON').state(datetime(2001,6,1)) - ephem.get_body('EARTH').state(datetime(2001,6,1))  )])
     ]
 
 class Mouse(object):
@@ -191,11 +207,12 @@ class cntrView(QSplitter):
             self.graphWidget.mDrag(mouse.pos[0], mouse.pos[1])
 
     def keyPressEvent(self, e):
+        pass
+        """
         if e.key() == Qt.Key_Escape:
-            #self.parent().close()
-            pass
+            self.parent().close()
         else:
-            self.graphWidget.kPress(e.key())
+            self.graphWidget.kPress(e.key())"""
 
 class Toolbox(QWidget):
     def __init__(self):
@@ -381,6 +398,7 @@ class plyrView(QWidget):
         self.mode = QComboBox()
         self.mode.addItems(['chase','fixed','flyby'])
         self.mode.currentIndexChanged.connect(self.setMode)
+        self.vidMode = 0
         self.layout.addWidget(self.mode, 3, 3)
 
         #info button
@@ -418,7 +436,29 @@ class plyrView(QWidget):
 
             QTimer.singleShot(round(1000 / framerate), self.recurDraw)
 
+            self.updateCam()
             self.graphWidget.updateGL()
+
+    def updateCam(self):
+        global selectedSolution, viewTime
+        deltaT = (viewTime - selectedSolution.launch).total_seconds()
+        #chase
+        if self.vidMode == 0:
+            vis.autoChase(selectedSolution.getPosition(deltaT))
+
+        #flyby
+        elif self.vidMode == 2:
+            body = selectedSolution.getTrajectory(deltaT).body
+            if not body.name == 'SUN':
+                vis.autoFlyby(body.state(viewTime), body.soi(viewTime))
+            else:
+                vis.autoSolarCenter()
+
+        #fixed
+        elif self.vidMode == 1:
+            global solarSystemPlaneUP
+            vis.autoFixed(solarSystemPlaneUP)
+
 
     def playVid(self):
         #print('playing')
@@ -538,10 +578,12 @@ class plyrView(QWidget):
             self.graphWidget.mDrag(mouse.pos[0], mouse.pos[1])
 
     def keyPressEvent(self, e):
+        pass
+        """
         if e.key() == Qt.Key_Escape:
             self.parent().close()
         else:
-            self.graphWidget.kPress(e.key())
+            self.graphWidget.kPress(e.key())"""
 
 class glWidget(QGLWidget):
 
@@ -586,8 +628,10 @@ class glWidget(QGLWidget):
         #all other trajectories
         global selectedSolution
         if not selectedSolution == None:
+            index = 0
+            global trajColors
             for i in selectedSolution.trajectories:
-                iOrbit = vis.orbit([255,255,255], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
+                iOrbit = vis.orbit(trajColors[index], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
                 drawables.append(vis.drawable(iOrbit))
             deltaT = (viewTime - selectedSolution.launch).total_seconds()
             """print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
@@ -644,6 +688,11 @@ if __name__ == '__main__':
     global ephem
     root_dir = os.path.abspath(os.getcwd())
     ephem = ephemeris(sp, root_dir)
+
+    global solarSystemPlaneUP
+    e2001 = ephem.get_body('EARTH').state(datetime(2001,1,1))
+    e2001UP = np.cross(np.array(e2001[0:3]), np.array(e2001[3:]))
+    solarSystemPlaneUP = e2001UP / np.linalg.norm(e2001UP)
 
     #initialize main window
     global window

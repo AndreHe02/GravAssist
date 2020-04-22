@@ -8,10 +8,10 @@ from PIL import Image as Image
 import sys
 import math
 
-IS_PERSPECTIVE = True                               # 透视投影
-VIEW = np.array([-0.5, 0.5, -0.5, 0.5, .5, 500.0])  # 视景体的left/right/bottom/top/near/far六个面
+IS_PERSPECTIVE = True                             # 透视投影
+VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 300.0])  # 视景体的left/right/bottom/top/near/far六个面
 SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
-EYE = np.array([0.0, 0.0, 10.0])                     # 眼睛的位置（默认z轴的正方向）
+EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
 LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
 EYE_UP = np.array([0.0, 1.0, 0.0])                  # 定义对观察者而言的上方（默认y轴的正方向）
 WIN_W, WIN_H = 640, 480                             # 保存窗口宽度和高度的变量
@@ -350,6 +350,8 @@ def draw(drawables = []):
     global SCALE_K
     global WIN_W, WIN_H
 
+    #rint('EYE', EYE)
+
     global quad
 
     global materials, textures
@@ -434,6 +436,67 @@ def reshape(width, height):
 
     WIN_W, WIN_H = width, height
     glutPostRedisplay()
+
+def autoChase(posProbe):
+    #maintain the current camera angles while following the movement of the probe
+    global LOOK_AT, EYE
+    lookTo = LOOK_AT - EYE
+
+    posPr = np.array([posProbe[0], posProbe[2], posProbe[1]])
+
+    LOOK_AT = posPr * celesScale
+    EYE = LOOK_AT - lookTo
+
+    lookTo = LOOK_AT - EYE
+    #print(LOOK_AT)
+
+    global DIST, PHI, THETA
+    DIST, PHI, THETA = getposture()
+
+def autoSolarCenter():
+    global LOOK_AT
+    LOOK_AT = np.array([0,0,0])
+
+    global DIST, PHI, THETA
+    DIST, PHI, THETA = getposture()
+
+def autoFlyby(pivotPos, soi):
+    #magnify and translate such that the pivot is in the center and the sphere of influence fills the screen
+    global celesScale
+
+    pivotPos = np.array([pivotPos[0], pivotPos[2], pivotPos[1]])
+    rPiv = pivotPos * celesScale
+
+    #the beginning screen shows about 2AU of stuff, so assume that 1.8AU converts to 1 SOI
+    global scalingArm
+    global LOOK_AT, EYE
+
+    c = 1 * 149597870
+
+    #print('soi', soi)
+    lookTo = LOOK_AT-EYE
+    #print(np.linalg.norm(lookTo))
+    lookToF = scalingArm * soi / c * (lookTo) / np.linalg.norm(lookTo)
+
+    LOOK_AT = rPiv
+    #print('rPiv', rPiv)
+    #print('lookToF',lookToF)
+    EYE = LOOK_AT - lookToF
+    #print('EYE ', EYE)
+
+    global DIST, PHI, THETA
+    DIST, PHI, THETA = getposture()
+
+def autoFixed(up):
+    #hangs the camera at a birds eye view directly above the solar system plane
+    global LOOK_AT, EYE
+
+    lookTo = LOOK_AT - EYE
+    LOOK_AT = np.array([0,0,0])
+    EYE = np.array([up[0], up[2], up[1]]) * np.linalg.norm(lookTo)
+
+    global DIST, PHI, THETA
+    DIST, PHI, THETA = getposture()
 
 def mouseclick(button, state, x, y):
     global SCALE_K

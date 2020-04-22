@@ -27,6 +27,7 @@ class body:
         def convert(dateObj):
             return self.sp.str2et(dateObj.strftime("%Y %b %d %H:%M:%S").lower())
         if self.name=='SUN':barycenter = 'SOLAR SYSTEM BARYCENTER'
+        elif self.name=='MOON': barycenter = 'MOON'
         else:barycenter = self.name + ' BARYCENTER'
         [state, ltime] = self.sp.spkezr(barycenter, convert(time), 'J2000', self.mode, self.observer)
         return np.array(state)
