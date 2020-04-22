@@ -4,7 +4,7 @@ import sys
 from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QSplashScreen, QSplitter, QLineEdit, QGridLayout, QWidget, QPushButton, QMessageBox
 from PySide2.QtWidgets import QCalendarWidget, QTreeWidget, QStackedWidget, QLabel, QVBoxLayout, QSizePolicy, QComboBox, QSlider, QTreeWidgetItem
 from PySide2.QtOpenGL import QGLWidget
-from PySide2.QtCore import Slot, qApp, QFile, QTimer, Qt, QDate
+from PySide2.QtCore import Slot, QFile, QTimer, Qt, QDate
 from PySide2.QtGui import QKeySequence, QIcon, QPixmap
 
 from OpenGL.GL import *
@@ -29,6 +29,8 @@ viewTime = datetime(2001,1,1)
 #list of everything that will be drawn
 drawables = []
 defaultTrajColor = [130, 184, 97]
+
+framerate = 30.0
 
 class path(object):
 
@@ -99,7 +101,7 @@ class MainWindow(QMainWindow):
         self.status.showMessage("sample status bar message")
 
         # Window dimensions
-        geometry = qApp.desktop().availableGeometry(self)
+        geometry = QApplication.desktop().availableGeometry(self)
         if geometry.width() > 1024 and geometry.height() > 720:
             self.setGeometry(50,50,1024,720)
 
@@ -348,13 +350,14 @@ class plyrView(QWidget):
 
         #progress slider
         self.progress = QSlider(Qt.Horizontal)
-        self.progress.valueChanged.connect(self.progressSld)
+        self.progress.sliderPressed.connect(self.progressPrs)
+        self.progress.sliderReleased.connect(self.progressRls)
         self.layout.addWidget(self.progress, 2, 1, 2, 1)
 
         #play/pause button
         self.isPlaying = False
         self.wasPlaying = False
-        self.play = QPushButton('play', self)
+        self.play = QPushButton('\u25B6', self)
         self.play.setToolTip('play/pause')
         self.play.clicked.connect(self.playBtn)
         self.play.setStyleSheet('QPushButton {font-weight: bold;}')
@@ -365,11 +368,11 @@ class plyrView(QWidget):
         spdLbl.setText("video speed: ")
         spdLbl.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         self.layout.addWidget(spdLbl, 2, 2)
-        self.speed = QPushButton('1 day/second')
+        self.speed = QPushButton('7 days/second')
         self.speed.setToolTip('change playing speed')
         self.speed.clicked.connect(self.changeSpd)
         self.layout.addWidget(self.speed, 3, 2)
-        self.vidSpeed = 24 # in hours per second
+        self.vidSpeed = 604800 # in seconds per second
 
         #view mode button
         mdLbl = QLabel()
@@ -396,51 +399,76 @@ class plyrView(QWidget):
 
     def playBtn(self):
         if self.isPlaying == True:
+            self.wasPlaying = False
             self.pauseVid()
         else:
+            self.wasPlaying = True
             self.playVid()
+
+    def recurDraw(self):
+        if self.isPlaying:
+            global viewTime
+            global selectedSolution
+            viewTime = selectedSolution.launch + timedelta(seconds=self.progress.value())
+
+            global framerate
+            dT = timedelta(seconds = self.vidSpeed / framerate)
+            viewTime = viewTime + dT
+            self.progress.setValue(round((viewTime-selectedSolution.launch).total_seconds()))
+
+            QTimer.singleShot(round(1000 / framerate), self.recurDraw)
+
+            self.graphWidget.updateGL()
 
     def playVid(self):
         #print('playing')
-        self.play.setText('pause')
+        self.play.setText('\u2759\u2759')
+        self.play.hide()
         self.play.show()
-
-        global viewTime
-        global selectedSolution
-        viewTime = selectedSolution.launch + timedelta(seconds=self.progress.value())
-
-        self.graphWidget.paintGL()
-
         self.isPlaying = True
-        self.wasPlaying = True
+
+        self.recurDraw()
 
     def pauseVid(self):
         #print('pausing')
-        self.play.setText('play')
+        self.play.setText('\u25B6')
+        self.play.hide()
         self.play.show()
         self.isPlaying = False
-        self.wasPlaying = False
 
-    def progressSld(self):
-        self.wasPlaying = self.isPlaying
-        size = self.progress.value()
-        self.pauseVid()
-        #leap
-            #apfjepifaep
+    def progressPrs(self):
+        if self.isPlaying:
+            self.pauseVid()
+    def progressRls(self):
         if self.wasPlaying:
             self.playVid()
 
     def changeSpd(self):
-        self.wasPlaying = self.isPlaying
-        self.pauseVid()
-        #change the speed here
-            #apejfaioejfaper
+        if self.isPlaying:
+            self.pauseVid()
+
+        if self.vidSpeed==1 * 86400:
+            self.vidSpeed = 7 * 86400
+            self.speed.setText('7 days/second')
+        elif self.vidSpeed == 7 * 86400:
+            self.vidSpeed = 30 * 86400
+            self.speed.setText('30 days/second')
+        elif self.vidSpeed == 30 * 86400:
+            self.vidSpeed = 100 * 86400
+            self.speed.setText('100 days/second')
+        elif self.vidSpeed == 100 * 86400:
+            self.vidSpeed = 1 * 86400
+            self.speed.setText('1 day/second')
+
+        self.speed.hide()
+        self.speed.show()
+
         if self.wasPlaying:
             self.playVid()
 
     def setMode(self):
-        self.wasPlaying = self.isPlaying
-        self.pauseVid()
+        if self.isPlaying:
+            self.pauseVid()
         print(self.mode.currentText(), self.mode.currentIndex())
         self.vidMode = self.mode.currentIndex()
 
@@ -448,8 +476,8 @@ class plyrView(QWidget):
             self.playVid()
 
     def showInfo(self):
-        self.wasPlaying = self.isPlaying
-        self.pauseVid()
+        if self.isPlaying:
+            self.pauseVid()
         #show info here
             #apejfaioejfaper
         if self.wasPlaying:
@@ -470,8 +498,8 @@ class plyrView(QWidget):
                 mouse.draggingIn = self.graphWidget
                 self.graphWidget.mClick(GLUT_LEFT_BUTTON, GLUT_DOWN, mouse.pos[0], mouse.pos[1])
 
-                self.wasPlaying = self.isPlaying
-                self.pauseVid()
+                if self.isPlaying:
+                    self.pauseVid()
             else:
                 mouse.draggingIn = None
         elif e.button() == Qt.MouseButton.RightButton:
@@ -479,8 +507,8 @@ class plyrView(QWidget):
                 mouse.draggingIn = self.graphWidget
                 self.graphWidget.mClick(GLUT_RIGHT_BUTTON, GLUT_DOWN, mouse.pos[0], mouse.pos[1])
 
-                self.wasPlaying = self.isPlaying
-                self.pauseVid()
+                if self.isPlaying:
+                    self.pauseVid()
             else:
                 mouse.draggingIn = None
 
@@ -562,8 +590,8 @@ class glWidget(QGLWidget):
                 iOrbit = vis.orbit([255,255,255], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
                 drawables.append(vis.drawable(iOrbit))
             deltaT = (viewTime - selectedSolution.launch).total_seconds()
-            print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
-            #print('------')
+            """print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
+            """#print('------')
 
         vis.draw(drawables)
         drawables = []
