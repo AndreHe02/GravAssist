@@ -166,9 +166,9 @@ class celes(drawableType):
                 blurSlice = 30
 
                 #the desired initial intensity
-                lIntInitial = .3
+                lIntInitial = 0.5
                 #the desired intensity at x = xf
-                threshold = 0.05
+                threshold = 0.1
             else:
                 global materials
                 if self.mat == materials['gas']:
@@ -177,22 +177,28 @@ class celes(drawableType):
                     #the desired intensity at x = xf
                     threshold = 0.2
                 else:
-                    lIntInitial = 0.5
-                    threshold = 0.05
-                xf = 1.2
+                    lIntInitial = 1
+                    threshold = 0.2
+                xf = 1.15
                 blurSlice = 7
 
-
+            #ratio of radius of each layer to the original sphere
             blurScale = np.linspace(1, xf, blurSlice)
             #blurMag = [0.4, 0.3, 0.1, 0.25, 0.05]
-            dx = (xf - 1)/10
+            dx = (xf - 1)/(blurSlice)
 
-            att = (lIntInitial - threshold) / (threshold) / (xf - 1)**2
+            #constants for the light intensity function
+            a = (lIntInitial / threshold - 1) / (xf**2 - 1)
+            b = 1 - a
 
             #the light intensity function we want to achieve
-            lIntensity = lambda x: lIntInitial  / (att*((x-1)**2)+1)
+            lIntensity = lambda x: lIntInitial  / (a * x**2 + b)
+            #the alpha value for each layer, dependent on dx
             dy = lambda x: lIntensity(x)-lIntensity(x+dx)
+
             for i, e in enumerate (blurScale):
+                #if self.name == 'Sun':
+                    #print(lIntensity(e))
                 glColor4f(0,0,0, dy(e))
                 gluSphere(qobj, self.r*constScale*e, 50,50)
 
