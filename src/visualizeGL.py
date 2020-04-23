@@ -567,13 +567,14 @@ def autoFlyby(pivotPos, soi):
     global DIST, PHI, THETA
     DIST, PHI, THETA = getposture()
 
-def autoFixed(up, pivotPos):
+def autoBirdEye(up, pivotPos):
     #hangs the camera at a birds eye view directly above the solar system plane
     global LOOK_AT, EYE
     global celesScale
+    LOOK_AT = np.array([pivotPos[0], pivotPos[2], pivotPos[1]]) * celesScale
     lookTo = LOOK_AT - EYE
-    LOOK_AT = np.array(pivotPos[0], pivotPos[2], pivotPos[1]) * celesScale
-    EYE = np.array([up[0], up[2], up[1]]) * np.linalg.norm(lookTo)
+    up = np.array([up[0], up[2], up[1]])
+    EYE = LOOK_AT + up * np.linalg.norm(lookTo)
 
     global DIST, PHI, THETA
     DIST, PHI, THETA = getposture()

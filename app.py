@@ -396,7 +396,7 @@ class plyrView(QWidget):
         mdLbl.setText('camera mode')
         self.layout.addWidget(mdLbl, 2, 3)
         self.mode = QComboBox()
-        self.mode.addItems(['chase','fixed','flyby'])
+        self.mode.addItems(['chase','bird\'s eye','flyby'])
         self.mode.currentIndexChanged.connect(self.setMode)
         self.vidMode = 0
         self.layout.addWidget(self.mode, 3, 3)
@@ -454,10 +454,10 @@ class plyrView(QWidget):
             else:
                 vis.autoSolarCenter()
 
-        #fixed
+        #bird eye
         elif self.vidMode == 1:
             global solarSystemPlaneUP
-            vis.autoFixed(solarSystemPlaneUP)
+            vis.autoBirdEye(solarSystemPlaneUP, selectedSolution.getTrajectory(deltaT).body.state(viewTime))
 
 
     def playVid(self):
