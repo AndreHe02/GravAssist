@@ -86,10 +86,10 @@ class drawable(object):
     def draw(self, solid = True):
         global celesScale
         if type(self.obj).__name__ == 'celes':
-            self.obj.draw(np.array([self.pos[0], self.pos[2], self.pos[1]])*celesScale,
-                np.array([self.up[0], self.up[2], self.up[1]])*celesScale, solid = solid)
+            self.obj.draw(np.array([-self.pos[0], -self.pos[2], self.pos[1]])*celesScale,
+                np.array([-self.up[0], -self.up[2], self.up[1]]), solid = solid)
         elif type(self.obj).__name__ == 'probe':
-            self.obj.draw(np.array(self.pos[0], self.pos[2], self.pos[1])*celesScale)
+            self.obj.draw(np.array(-self.pos[0], -self.pos[2], self.pos[1])*celesScale)
         else:
             self.obj.draw()
 
@@ -254,7 +254,7 @@ class orbit(drawableType):
         origWidth = glGetFloatv(GL_LINE_WIDTH)
         glLineWidth(3)
         glPushMatrix()
-        glTranslate(self.foc[0], self.foc[2], self.foc[1])
+        glTranslate(-self.foc[0], -self.foc[2], self.foc[1])
 
         #set appearance
         global materials
@@ -270,7 +270,7 @@ class orbit(drawableType):
         for i in locations:
             temp = np.matmul(invMtrx, np.transpose(i))
             #print(i)
-            glVertex3f(temp[0], temp[2], temp[1])
+            glVertex3f(-temp[0], -temp[2], temp[1])
         glEnd()
         glPopMatrix()
         glLineWidth(origWidth)
@@ -384,9 +384,10 @@ def init(w=640, h=480):
 
 def rotateTo (fr, to):
     axis = np.cross(fr, to)
+    axis = axis / np.linalg.norm(axis)
     ang = np.arccos(np.dot(fr, to) / (np.linalg.norm(fr) * np.linalg.norm(to)))
     #print("rotate by", ang, "around", axis)
-    glRotatef(-1 * np.degrees(ang), axis[0], axis[1], axis[2])
+    glRotatef(1 * np.degrees(ang), axis[0], axis[1], axis[2])
 
 def rotateBy (axis, theta):
     """
@@ -528,7 +529,7 @@ def autoChase(posProbe):
     global LOOK_AT, EYE
     lookTo = LOOK_AT - EYE
 
-    posPr = np.array([posProbe[0], posProbe[2], posProbe[1]])
+    posPr = np.array([-posProbe[0], -posProbe[2], posProbe[1]])
 
     LOOK_AT = posPr * celesScale
     EYE = LOOK_AT - lookTo
@@ -550,7 +551,7 @@ def autoFlyby(pivotPos, soi):
     #magnify and translate such that the pivot is in the center and the sphere of influence fills the screen
     global celesScale
 
-    pivotPos = np.array([pivotPos[0], pivotPos[2], pivotPos[1]])
+    pivotPos = np.array([-pivotPos[0], -pivotPos[2], pivotPos[1]])
     rPiv = pivotPos * celesScale
 
     #the beginning screen shows about 2AU of stuff, so assume that 1.8AU converts to 1 SOI
@@ -577,9 +578,9 @@ def autoBirdEye(up, pivotPos):
     #hangs the camera at a birds eye view directly above the solar system plane
     global LOOK_AT, EYE
     global celesScale
-    LOOK_AT = np.array([pivotPos[0], pivotPos[2], pivotPos[1]]) * celesScale
+    LOOK_AT = np.array([-pivotPos[0], -pivotPos[2], pivotPos[1]]) * celesScale
     lookTo = LOOK_AT - EYE
-    up = np.array([up[0], up[2], up[1]])
+    up = np.array([-up[0], -up[2], up[1]])
     EYE = LOOK_AT + up * np.linalg.norm(lookTo)
 
     global DIST, PHI, THETA
