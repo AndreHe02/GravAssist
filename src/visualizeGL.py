@@ -83,11 +83,11 @@ class drawable(object):
         self.pos = pos
         self.up = up
 
-    def draw(self):
+    def draw(self, solid = True):
         global celesScale
         if type(self.obj).__name__ == 'celes':
             self.obj.draw(np.array([self.pos[0], self.pos[2], self.pos[1]])*celesScale,
-                np.array([self.up[0], self.up[2], self.up[1]])*celesScale)
+                np.array([self.up[0], self.up[2], self.up[1]])*celesScale, solid = solid)
         elif type(self.obj).__name__ == 'probe':
             self.obj.draw(np.array(self.pos[0], self.pos[2], self.pos[1])*celesScale)
         else:
@@ -111,7 +111,7 @@ class celes(drawableType):
         self.rings = rings
         self.body = None
 
-    def draw(self, pos, up):
+    def draw(self, pos, up, solid = True):
         glEnable(GL_TEXTURE_2D)
         qobj = gluNewQuadric()
         gluQuadricTexture(qobj, GL_TRUE)
@@ -131,13 +131,76 @@ class celes(drawableType):
             if currArm < scalingArm:
                 constScale = currArm / scalingArm
 
-        glBindTexture(GL_TEXTURE_2D, self.tex)
-        sphere(qobj, self.r * constScale, self.emit, self.mat)
-        gluDeleteQuadric(qobj)
+        #print(solid)
 
-        for i in self.rings:
-            hollowDisk (i.r * self.r * constScale, i.R * self.r * constScale, self.emit, self.mat)
-        glPopMatrix()
+        if solid:
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glEnable(GL_BLEND)
+            #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+            glBindTexture(GL_TEXTURE_2D, self.tex)
+            #glDisable(GL_COLOR_MATERIAL)
+
+            glColor4f(0,0,0,1)
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
+            sphere(qobj, self.r * constScale, self.emit, self.mat)
+
+            gluDeleteQuadric(qobj)
+            glDisable(GL_BLEND)
+
+            for i in self.rings:
+                hollowDisk (i.r * self.r * constScale, i.R * self.r * constScale, self.emit, self.mat)
+            glPopMatrix()
+
+        else:
+            #glDepthFunc(GL_ALWAYS)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glEnable(GL_BLEND)
+            #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+            glBindTexture(GL_TEXTURE_2D, self.tex)
+            #glDisable(GL_COLOR_MATERIAL)
+
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
+
+            if self.name == 'Sun':
+                xf = 2
+                blurSlice = 30
+
+                #the desired initial intensity
+                lIntInitial = .3
+                #the desired intensity at x = xf
+                threshold = 0.05
+            else:
+                global materials
+                if self.mat == materials['gas']:
+                    #the desired initial intensity
+                    lIntInitial = 1
+                    #the desired intensity at x = xf
+                    threshold = 0.2
+                else:
+                    lIntInitial = 0.5
+                    threshold = 0.05
+                xf = 1.2
+                blurSlice = 7
+
+
+            blurScale = np.linspace(1, xf, blurSlice)
+            #blurMag = [0.4, 0.3, 0.1, 0.25, 0.05]
+            dx = (xf - 1)/10
+
+            att = (lIntInitial - threshold) / (threshold) / (xf - 1)**2
+
+            #the light intensity function we want to achieve
+            lIntensity = lambda x: lIntInitial  / (att*((x-1)**2)+1)
+            dy = lambda x: lIntensity(x)-lIntensity(x+dx)
+            for i, e in enumerate (blurScale):
+                glColor4f(0,0,0, dy(e))
+                gluSphere(qobj, self.r*constScale*e, 50,50)
+
+            gluDeleteQuadric(qobj)
+            glDisable(GL_BLEND)
+            #glDepthFunc(GL_ALWAYS)
+
+            glPopMatrix()
 
 class probe(drawableType):
     def __init__(self):
@@ -191,6 +254,8 @@ class orbit(drawableType):
         global materials
         materials['graphElement'].setMat([self.color[0]/255, self.color[1]/255, self.color[2]/255])
         glColor3f(self.color[0]/255, self.color[1]/255, self.color[2]/255)
+
+        glDisable(GL_LIGHTING)
         #draw
         if self.angleIn == None:
             glBegin(GL_LINE_LOOP)
@@ -203,6 +268,7 @@ class orbit(drawableType):
         glEnd()
         glPopMatrix()
         glLineWidth(origWidth)
+        glEnable(GL_LIGHTING)
 
 class arrow(drawableType):
     def __init__(self, color, vec):
@@ -221,7 +287,7 @@ class ring(object):
 def getposture():
     global EYE, LOOK_AT
 
-    dist = np.sqrt(np.power((EYE-LOOK_AT), 2).sum())
+    dist = np.linalg.norm(EYE-LOOK_AT)
     if dist > 0:
         phi = np.arcsin((EYE[1]-LOOK_AT[1])/dist)
         theta = np.arcsin((EYE[0]-LOOK_AT[0])/(dist*np.cos(phi)))
@@ -239,7 +305,7 @@ def init(w=640, h=480):
 
     global quad
 
-    glClearColor(0.0,0.0,0.0,0.0); # 设置画布背景色。注意：这里必须是4个参数
+    glClearColor(0.15,0.15,0.15,1); # 设置画布背景色。注意：这里必须是4个参数
     glEnable(GL_DEPTH_TEST)          # 开启深度测试，实现遮挡关系
     glDepthFunc(GL_LEQUAL)           # 设置深度测试函数（GL_LEQUAL只是选项之一
     quad = gluNewQuadric()
@@ -261,7 +327,7 @@ def init(w=640, h=480):
 
     global materials, textures
 
-    materials = {"graphElement":material(1, 0, 0, 0, 20),
+    materials = {"graphElement":material(0, 0, 0, 0, 20),
         "star":material(.08, .8, 0, 120, 30),
         "rock":material(0, 1, .2, 5, 20),
         "gas":material(.005, .3, .2, 0, 30)}
@@ -411,8 +477,22 @@ def draw(drawables = []):
     glEnd()                              # 结束绘制线段
 
     # 绘制
+    #solids
     for i in drawables:
-        i.draw()
+        if type(i.obj).__name__=='celes':
+            i.draw(solid = True)
+            pass
+
+    #graph elements
+    for i in drawables:
+        if not type(i.obj).__name__=='celes':
+            i.draw()
+
+    #overlay blurs
+    for i in drawables:
+        if type(i.obj).__name__=='celes':
+            i.draw(solid = False)
+            pass
 
     glDisable(GL_TEXTURE_2D)
 
@@ -487,12 +567,12 @@ def autoFlyby(pivotPos, soi):
     global DIST, PHI, THETA
     DIST, PHI, THETA = getposture()
 
-def autoFixed(up):
+def autoFixed(up, pivotPos):
     #hangs the camera at a birds eye view directly above the solar system plane
     global LOOK_AT, EYE
-
+    global celesScale
     lookTo = LOOK_AT - EYE
-    LOOK_AT = np.array([0,0,0])
+    LOOK_AT = np.array(pivotPos[0], pivotPos[2], pivotPos[1]) * celesScale
     EYE = np.array([up[0], up[2], up[1]]) * np.linalg.norm(lookTo)
 
     global DIST, PHI, THETA
