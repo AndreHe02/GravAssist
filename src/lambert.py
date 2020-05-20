@@ -72,9 +72,20 @@ def lambert_transfer(p1, p2, t0, T, GM):
         R2E = np.linalg.inv(E2R)
         r1E = np.matmul(R2E, r1R)
         r2E = np.matmul(R2E, r2R)
+        #calculate time by Keplar's area law
         th = np.arccos(np.sum(r1E * r2E) / norm(r1E) / norm(r2E))
+        if np.isnan(th): th = 0
         if th > np.pi: th = np.pi - th
-        dt = th / (2*np.pi) * TE
+        AreaE = aE * bE * np.pi
+        ActR = th / (2*np.pi) * AreaE
+        tctR = norm(np.cross(r1R, r2R))/2
+        tfR = norm(np.cross(p1R, p2R))/2
+        refR = r1R - r2R
+        rrefR = np.cross(r1R, refR); rrefR = rrefR / norm(rrefR)
+        prefR = np.cross(p1R, refR); prefR = prefR / norm(prefR)
+        if norm(rrefR + prefR) > norm(rrefR): AfR = ActR - tctR + tfR
+        else: AfR = ActR - tctR - tfR
+        dt = AfR / AreaE * TE
         
         #compute initial and final velocities
         if mirrored: rhref = np.cross(r2E, r1E)
@@ -129,7 +140,6 @@ def lambert_transfer(p1, p2, t0, T, GM):
             binary_search(tsf_time, left_min, 0, T, incr=True),
             binary_search(tsf_time, 0, right_min, T, incr=False),
             binary_search(tsf_time, right_min, lH_range, T, incr=True)]
-        
         return [tsf_func(lH) for lH in valid_lHs if lH]
         
     search_range= 1e9
