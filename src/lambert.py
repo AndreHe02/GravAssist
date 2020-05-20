@@ -109,7 +109,7 @@ def lambert_transfer(p1, p2, t0, T, GM):
     #satisfying the time constraint T
     def fit_time_constraint(tsf_func, lH_range):
         
-        def ternary_search(f, left, right, absolute_precision):
+        def ternary_search(f, left, right, absolute_precision=10):
             if abs(right - left) < absolute_precision:
                 return (left + right) / 2
             left_third = (2*left + right) / 3
@@ -119,7 +119,7 @@ def lambert_transfer(p1, p2, t0, T, GM):
             else:
                 return ternary_search(f, left, right_third, absolute_precision)
 
-        def binary_search(f, lo, hi, target, incr=True, precision=1):
+        def binary_search(f, lo, hi, target, incr=True, precision=10):
             if hi-lo < 1e-2 * lH_range: return None #no interval, stop search
             mid = (lo + hi) / 2
             while abs(hi - lo) > precision:
@@ -134,8 +134,8 @@ def lambert_transfer(p1, p2, t0, T, GM):
             return mid
 
         tsf_time = lambda lH: tsf_func(lH)['dt']
-        left_min = ternary_search(tsf_time, -lH_range, 0, 10)
-        right_min = ternary_search(tsf_time, 0, lH_range, 10)
+        left_min = ternary_search(tsf_time, -lH_range, 0)
+        right_min = ternary_search(tsf_time, 0, lH_range)
         valid_lHs = [binary_search(tsf_time, -lH_range, left_min, T, incr=False),
             binary_search(tsf_time, left_min, 0, T, incr=True),
             binary_search(tsf_time, 0, right_min, T, incr=False),
