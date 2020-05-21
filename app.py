@@ -1,11 +1,10 @@
 
 import sys
 #from PySide2.QtWidgets import *
-from PySide2.QtWidgets import QApplication, QMainWindow, QAction, QSplashScreen, QSplitter, QLineEdit, QGridLayout, QWidget, QPushButton, QMessageBox
-from PySide2.QtWidgets import QCalendarWidget, QTreeWidget, QStackedWidget, QLabel, QVBoxLayout, QSizePolicy, QComboBox, QSlider, QTreeWidgetItem
+from PySide2.QtGui import *
+from PySide2.QtWidgets import *
 from PySide2.QtOpenGL import QGLWidget
-from PySide2.QtCore import Slot, QFile, QTimer, Qt, QDate
-from PySide2.QtGui import QKeySequence, QIcon, QPixmap
+from PySide2.QtCore import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -90,21 +89,16 @@ class path(object):
 
 def calculatePath(departure, arrival, earliest, latest, sun):
 
-    #loading message box
-    loading = QMessageBox()
-    loading.setText('calculating path')
-    loading.setIcon(QMessageBox.Information)
-    loading.setStandardButtons()
-    loading.exec_()
+    #show only optimal path
+    #tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
+    #tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
+    #return [tsf_path]
 
-    #just for demo purposes, the real thing should end up in a list
-    tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
-    tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
+    #show sampled paths sorted by DV
+    solutions = sorted_transfers(departure, arrival, earliest, latest, sun.Gmass[0], 5)
 
-    #close loading message box
-    loading.done(0)
+    return [ path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] ) for DV, tsf, t0, T in solutions]
 
-    return [tsf_path]
 
 class Mouse(object):
 
@@ -112,6 +106,53 @@ class Mouse(object):
         self.pos = [0,0]
         self.draggingIn = None
 mouse = Mouse()
+
+class Calculator(QRunnable):
+
+    def __init__(self, departure, arrival, earliest, latest, sun):
+        super(Calculator, self).__init__()
+
+        #take input for the run function
+        self.departure = departure
+        self.arrival = arrival
+        self.earliest = earliest
+        self.latest = latest
+        self.sun = sun
+
+        self.signals = Signals()
+
+    @Slot()
+    def run(self):
+        try:
+            #calculate sorted path
+            solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], 5)
+            sorted = [ path( t0, DV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], tsf['v1'])))] ) for DV, tsf, t0, T in solutions]
+
+            global results
+            results = sorted
+
+            #update solutions list
+            global window
+            window.splitter.tBox.solutions.clear()
+
+            for i in results:
+                iItem = QTreeWidgetItem([
+                    i.launch.strftime('%Y.%m.%d'),
+                    str(i.deltaV),
+                    str(i.duration.total_seconds()/ 31556952),
+                    ', '.join(i.flyby)
+                ])
+                window.splitter.tBox.solutions.addTopLevelItem(iItem)
+        except:
+            print('error')
+            self.signals.error.emit(69)
+        else:
+            self.signals.finished.emit()
+
+class Signals(QObject):
+
+    finished = Signal()
+    error = Signal(int)
 
 class MainWindow(QMainWindow):
 
@@ -302,14 +343,13 @@ class Toolbox(QWidget):
 
     def report(self):
         earliest = self.calendar1.selectedDate().toPython()
-        earliest = datetime.combine(earliest, datetime.min.time()) #convert date to datetime
-
+        earliest = datetime(year=earliest.year, month=earliest.month, day=earliest.day)
         latest = self.calendar2.selectedDate().toPython()
-        latest = datetime.combine(latest, datetime.min.time())
+        latest = datetime(year=latest.year, month=latest.month, day=latest.day)
         if earliest >= latest:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
-            msg.setText('latest departure should come after earliest departure')
+            msg.setText('latest arrival should come after earliest departure')
             msg.setStandardButtons(QMessageBox.Ok)
             retval = msg.exec_()
             return
@@ -325,18 +365,36 @@ class Toolbox(QWidget):
         print('calculate the optimal path from', depart,' to ', arrive, ' that starts after', earliest,' and arrives before', latest)
 
         #calculation
-        global results
-        results = calculatePath(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))
-        #update solutions list
-        self.solutions.clear()
-        for i in results:
-            iItem = QTreeWidgetItem([
-                i.launch.strftime('%Y.%m.%d'),
-                str(i.deltaV),
-                str(i.duration.total_seconds()/ 31556952),
-                ', '.join(i.flyby)
-            ])
-            self.solutions.addTopLevelItem(iItem)
+        """global results
+        results = calculatePath(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))"""
+
+        #QRunnable for calculation
+        calc = Calculator(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))
+        self.threadpool = QThreadPool()
+
+        #loading message
+        self.loadingMessage = QMessageBox()
+        self.loadingMessage.setText("calculating...")
+        self.loadingMessage.setIcon(QMessageBox.NoIcon)
+        self.loadingMessage.setStandardButtons(QMessageBox.NoButton)
+
+        calc.signals.finished.connect(lambda: self.loadingMessage.done(0)) #finishing background calculations turn off the loading box
+        calc.signals.error.connect(lambda: self.spawnError('error during calculation')) #throw error
+
+        self.threadpool.start(calc)
+        self.loadingMessage.exec_()
+
+    def spawnError(self, errMessage):
+
+        #close the loading message first
+        self.loadingMessage.done(0)
+
+        #run new error message
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        msg.setText(errMessage)
+        msg.setStandardButtons(QMessageBox.Ok)
+        retval = msg.exec_()
 
     def anim(self):
         global results
