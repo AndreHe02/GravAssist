@@ -57,7 +57,7 @@ class trajectory:
     #
     #state is relative to the sun
     #
-    def __init__(self,body,time,state):
+    def __init__(self, body, tEntrance, state, tExit = None):
 
         self.body = body
         self.entranceState = state
@@ -69,7 +69,7 @@ class trajectory:
         #function documentation
         #https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/oscltx_c.html
 
-        self.elements = sp.oscltx(state, convert(time), self.GM)
+        self.elements = sp.oscltx(state, convert(tEntrance), self.GM)
         self.elements = {
             "RP": self.elements[0], #Perifocal distance.
             "ECC": self.elements[1], #Eccentricity.
@@ -153,6 +153,12 @@ class trajectory:
         if E >= 1:
             self.angleIn = angleFromR(r, self)
             self.angleOut = angleFromR(self.exitState[0:3], self)
+
+        elif not tExit == None:
+            self.angleIn = angleFromR(r, self)
+            tElapsed = (tExit - tEntrance).total_seconds()
+            tState = sp.prop2b(self.GM, state, tElapsed)
+            self.angleout = angleFromR(tState[0:3], self)
 
 def angleFromR(r, trajectory):
     rR = squish(r, trajectory.mtrx)
