@@ -89,11 +89,14 @@ class path(object):
                 return flightTime - (e-self.launch).total_seconds()
 
 def calculatePath(departure, arrival, earliest, latest, sun):
-    #just for demo purposes, the real thing should end up in a list
-    tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
-    tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
+    #show only optimal path
+    #tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
+    #tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
+    #return [tsf_path] 
     
-    return [tsf_path]
+    #show sampled paths sorted by DV
+    solutions = sorted_transfers(departure, arrival, earliest, latest, sun.Gmass[0], 5)
+    return [ path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] ) for DV, tsf, t0, T in solutions]
 
 class Mouse(object):
 
@@ -234,7 +237,7 @@ class Toolbox(QWidget):
         self.layout.addWidget(calendar1, 1, 0)
         #label
         l2 = QLabel()
-        l2.setText("latest departure")
+        l2.setText("latest arrival")
         l2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         #l2.setFixedHeight(30)
         self.layout.addWidget(l2, 0, 1)
@@ -291,11 +294,13 @@ class Toolbox(QWidget):
 
     def report(self):
         earliest = self.calendar1.selectedDate().toPython()
+        earliest = datetime(year=earliest.year, month=earliest.month, day=earliest.day)
         latest = self.calendar2.selectedDate().toPython()
+        latest = datetime(year=latest.year, month=latest.month, day=latest.day)
         if earliest > latest:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
-            msg.setText('latest departure should come after earliest departure')
+            msg.setText('latest arrival should come after earliest departure')
             msg.setStandardButtons(QMessageBox.Ok)
             retval = msg.exec_()
             return
