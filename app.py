@@ -89,10 +89,21 @@ class path(object):
                 return flightTime - (e-self.launch).total_seconds()
 
 def calculatePath(departure, arrival, earliest, latest, sun):
+
+    #loading message box
+    loading = QMessageBox()
+    loading.setText('calculating path')
+    loading.setIcon(QMessageBox.Information)
+    loading.setStandardButtons()
+    loading.exec_()
+
     #just for demo purposes, the real thing should end up in a list
     tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
     tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
-    
+
+    #close loading message box
+    loading.done(0)
+
     return [tsf_path]
 
 class Mouse(object):
@@ -234,7 +245,7 @@ class Toolbox(QWidget):
         self.layout.addWidget(calendar1, 1, 0)
         #label
         l2 = QLabel()
-        l2.setText("latest departure")
+        l2.setText("latest arrival")
         l2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         #l2.setFixedHeight(30)
         self.layout.addWidget(l2, 0, 1)
@@ -291,8 +302,11 @@ class Toolbox(QWidget):
 
     def report(self):
         earliest = self.calendar1.selectedDate().toPython()
+        earliest = datetime.combine(earliest, datetime.min.time()) #convert date to datetime
+
         latest = self.calendar2.selectedDate().toPython()
-        if earliest > latest:
+        latest = datetime.combine(latest, datetime.min.time())
+        if earliest >= latest:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setText('latest departure should come after earliest departure')
@@ -308,7 +322,7 @@ class Toolbox(QWidget):
             msg.setStandardButtons(QMessageBox.Ok)
             retval = msg.exec_()
             return
-        print('calculate the optimal path from', depart,' to ', arrive, ' that starts some time between ', earliest,' and ', latest)
+        print('calculate the optimal path from', depart,' to ', arrive, ' that starts after', earliest,' and arrives before', latest)
 
         #calculation
         global results
