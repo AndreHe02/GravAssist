@@ -3,7 +3,7 @@ from numpy.linalg import norm as norm
 from numpy import array as arr
 from datetime import timedelta
 
-def lambert_transfer(p1, p2, t0, T, GM):
+def lambert_transfer(p1, p2, T, GM):
     #vectors/variables followed by R, H, E are:
     #R - in dimension reduced 2D vector space
     #H - in vector space defined by hyperbola axes
