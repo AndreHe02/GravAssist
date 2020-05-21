@@ -14,6 +14,7 @@ from OpenGL.GLUT import *
 from datetime import datetime, timedelta
 from src.SPICE.ephemeris import ephemeris
 from src.traj import trajectory
+from src.path_search import *
 import spiceypy as sp
 import numpy as np
 import os
@@ -87,17 +88,12 @@ class path(object):
             if flightTime >= (e - self.launch).total_seconds():
                 return flightTime - (e-self.launch).total_seconds()
 
-def calculatePath(departure, arrival, earliest, latest):
+def calculatePath(departure, arrival, earliest, latest, sun):
     #just for demo purposes, the real thing should end up in a list
-    global ephem
-    return [path(datetime(2001,1,1), #launch
-        69, #deltaV
-        timedelta(days=420), #duration
-        [datetime(2001,1,1), datetime(2001,6,1)], #entrance
-        [trajectory (ephem.get_body('SUN'), datetime(2001,1,1), ephem.get_body('EARTH').state(datetime(2001,1,1))),
-            trajectory(ephem.get_body('EARTH'), datetime(2001,6,1),
-                ephem.get_body('MOON').state(datetime(2001,6,1)) - ephem.get_body('EARTH').state(datetime(2001,6,1))  )])
-    ]
+    tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
+    tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
+    
+    return [tsf_path]
 
 class Mouse(object):
 
@@ -316,7 +312,7 @@ class Toolbox(QWidget):
 
         #calculation
         global results
-        results = calculatePath(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest)
+        results = calculatePath(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))
         #update solutions list
         self.solutions.clear()
         for i in results:
