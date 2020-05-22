@@ -134,9 +134,12 @@ class Calculator(QRunnable):
             global results
             results = sorted
 
-        except:
-            print('error')
+        except Exception as e:
+            print('error:', e)
             self.signals.error.emit(69)
+        except Warning as e:
+            print('error:', e)
+            self.signals.error.emit(420)
         else:
             self.signals.finished.emit()
 
@@ -271,8 +274,8 @@ class Toolbox(QWidget):
         calendar1.setGridVisible(True)
         calendar1.setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
         calendar1.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
-        calendar2.activated.connect(lambda: self.refreshCal(calendar1)) #refresh
-        calendar2.currentPageChanged.connect(lambda: self.refreshCal(calendar1)) #refresh
+        calendar1.activated.connect(lambda: self.refreshCal(calendar1)) #refresh
+        calendar1.currentPageChanged.connect(lambda: self.refreshCal(calendar1)) #refresh
         calendar1.setFixedSize(200,200)
         #calendar1.clicked.connect(self.showDate)
         self.calendar1 = calendar1

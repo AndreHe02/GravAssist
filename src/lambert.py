@@ -82,6 +82,9 @@ def lambert_transfer(p1, p2, T, GM):
         except Warning as e:
             print('...except reached:', e)
             th = 0
+        except Exception as e:
+            print('...except reached:', e)
+            th = 0
         if np.isnan(th): th = 0
         if th > np.pi: th = np.pi - th
         AreaE = aE * bE * np.pi

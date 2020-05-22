@@ -115,6 +115,14 @@ class trajectory:
         self.av = arealVelocity
 
         if(self.elements['ECC']<=1):
+            if not tExit == None:
+                #print(tExit - tEntrance).total_seconds()
+
+                self.angleIn = angleFromR(r, self)
+                tElapsed = (tExit - tEntrance).total_seconds()
+                tState = sp.prop2b(self.GM, state, tElapsed)
+                self.angleOut = angleFromR(tState[0:3], self)
+
             return
 
         #print("results:", rR, vR)
@@ -150,21 +158,12 @@ class trajectory:
 
         #print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
 
-        if E >= 1:
-            self.angleIn = angleFromR(r, self)
-            self.angleOut = angleFromR(self.exitState[0:3], self)
+        self.angleIn = angleFromR(r, self)
+        self.angleOut = angleFromR(self.exitState[0:3], self)
 
-        elif not tExit == None:
-
-            print(tExit - tEntrance).total_seconds()
-
-            self.angleIn = angleFromR(r, self)
-            tElapsed = (tExit - tEntrance).total_seconds()
-            tState = sp.prop2b(self.GM, state, tElapsed)
-            self.angleOut = angleFromR(tState[0:3], self)
 
 def angleFromR(r, trajectory):
-    rR = squish(r, trajectory.mtrx)
+    rR = squish(r, trajectory.rMtrx)
     return np.arctan2(rR[1], rR[0])
 
 def swingby(pivot, time, state):
