@@ -128,7 +128,7 @@ class Calculator(QRunnable):
     def run(self):
         try:
             #calculate sorted path
-            solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], 5)
+            solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], 2)
             sorted = [ path( t0, DV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], tsf['v1'])), t0+T)] ) for DV, tsf, t0, T in solutions]
 
             global results
