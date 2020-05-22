@@ -155,10 +155,13 @@ class trajectory:
             self.angleOut = angleFromR(self.exitState[0:3], self)
 
         elif not tExit == None:
+
+            print(tExit - tEntrance).total_seconds()
+
             self.angleIn = angleFromR(r, self)
             tElapsed = (tExit - tEntrance).total_seconds()
             tState = sp.prop2b(self.GM, state, tElapsed)
-            self.angleout = angleFromR(tState[0:3], self)
+            self.angleOut = angleFromR(tState[0:3], self)
 
 def angleFromR(r, trajectory):
     rR = squish(r, trajectory.mtrx)

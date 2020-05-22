@@ -3,19 +3,23 @@ from numpy.linalg import norm as norm
 from numpy import array as arr
 from datetime import timedelta
 
+import warnings
+
+np.seterr(all='warn')
+
 def lambert_transfer(p1, p2, T, GM):
     #vectors/variables followed by R, H, E are:
     #R - in dimension reduced 2D vector space
     #H - in vector space defined by hyperbola axes
     #E - in vector space defined by ellipse axes
-    
+
     #keep p1 as shorter leg
     mirrored = norm(p2) < norm(p1)
     if mirrored:
         temp = p1
         p1 = p2
         p2 = temp
-    
+
     #compute dimension reduction matrix
     i = p1 / norm(p1)
     p2n = p2 / norm(p2)
@@ -28,13 +32,13 @@ def lambert_transfer(p1, p2, T, GM):
     Rinv = lambda v: np.matmul(Rinv_, v)
     p1R = R(p1)
     p2R = R(p2)
-    
+
     #compute hyperbola paremeters
     #defined according to lambert's method
     aH = abs(norm(p2R) - norm(p1R))/2
     dH = norm(p2R - p1R) / 2
     bH = np.sqrt(dH**2 - aH**2)
-    
+
     def transfer_paths(lH):
         #compute f2=(x,y) with respect to hyperbola axes
         xH = aH + abs(lH)
@@ -58,7 +62,7 @@ def lambert_transfer(p1, p2, T, GM):
 
         #compute time to transfer from p1 to p2
         #on computed elliptical orbit
-        ctR = f2R / 2        
+        ctR = f2R / 2
         r1R = p1R - ctR
         r2R = p2R - ctR
         #linear transformation from reduced 2D
@@ -73,8 +77,11 @@ def lambert_transfer(p1, p2, T, GM):
         r1E = np.matmul(R2E, r1R)
         r2E = np.matmul(R2E, r2R)
         #calculate time by Keplar's area law
+        warnings.filterwarnings('error')
         try: th = np.arccos(np.sum(r1E * r2E) / norm(r1E) / norm(r2E))
-        except: th = 0
+        except Warning as e:
+            print('...except reached:', e)
+            th = 0
         if np.isnan(th): th = 0
         if th > np.pi: th = np.pi - th
         AreaE = aE * bE * np.pi
@@ -87,7 +94,7 @@ def lambert_transfer(p1, p2, T, GM):
         if norm(rrefR + prefR) > norm(rrefR): AfR = ActR - tctR + tfR
         else: AfR = ActR - tctR - tfR
         dt = AfR / AreaE * TE
-        
+
         #compute initial and final velocities
         if mirrored: rhref = np.cross(r2E, r1E)
         else: rhref = np.cross(r1E, r2E)
@@ -109,7 +116,7 @@ def lambert_transfer(p1, p2, T, GM):
     #find the lH value that yields a transfer path
     #satisfying the time constraint T
     def fit_time_constraint(tsf_func, lH_range):
-        
+
         def ternary_search(f, left, right, absolute_precision=10):
             if abs(right - left) < absolute_precision:
                 return (left + right) / 2
@@ -142,7 +149,7 @@ def lambert_transfer(p1, p2, T, GM):
             binary_search(tsf_time, 0, right_min, T, incr=False),
             binary_search(tsf_time, right_min, lH_range, T, incr=True)]
         return [tsf_func(lH) for lH in valid_lHs if lH]
-        
+
     search_range= 1e9
     short_solutions = fit_time_constraint(lambda lH: transfer_paths(lH)[0], search_range)
     long_solutions = fit_time_constraint(lambda lH: transfer_paths(lH)[1], search_range)

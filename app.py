@@ -19,10 +19,13 @@ import numpy as np
 import os
 
 import src.visualizeGL as vis
+import faulthandler
+
 #
 # data related
 #
 viewTime = datetime(2001,1,1)
+faulthandler.enable()
 #
 # graphic related
 #
@@ -97,7 +100,7 @@ def calculatePath(departure, arrival, earliest, latest, sun):
     #show sampled paths sorted by DV
     solutions = sorted_transfers(departure, arrival, earliest, latest, sun.Gmass[0], 5)
 
-    return [ path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] ) for DV, tsf, t0, T in solutions]
+    return [ path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])), tExit = t0+T)] ) for DV, tsf, t0, T in solutions]
 
 
 class Mouse(object):
@@ -131,18 +134,6 @@ class Calculator(QRunnable):
             global results
             results = sorted
 
-            #update solutions list
-            global window
-            window.splitter.tBox.solutions.clear()
-
-            for i in results:
-                iItem = QTreeWidgetItem([
-                    i.launch.strftime('%Y.%m.%d'),
-                    str(i.deltaV),
-                    str(i.duration.total_seconds()/ 31556952),
-                    ', '.join(i.flyby)
-                ])
-                window.splitter.tBox.solutions.addTopLevelItem(iItem)
         except:
             print('error')
             self.signals.error.emit(69)
@@ -280,6 +271,8 @@ class Toolbox(QWidget):
         calendar1.setGridVisible(True)
         calendar1.setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
         calendar1.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+        calendar2.activated.connect(lambda: self.refreshCal(calendar1)) #refresh
+        calendar2.currentPageChanged.connect(lambda: self.refreshCal(calendar1)) #refresh
         calendar1.setFixedSize(200,200)
         #calendar1.clicked.connect(self.showDate)
         self.calendar1 = calendar1
@@ -295,6 +288,8 @@ class Toolbox(QWidget):
         calendar2.setGridVisible(True)
         calendar2.setHorizontalHeaderFormat(QCalendarWidget.NoHorizontalHeader)
         calendar2.setVerticalHeaderFormat(QCalendarWidget.NoVerticalHeader)
+        calendar2.activated.connect(lambda: self.refreshCal(calendar2)) #refresh
+        calendar2.currentPageChanged.connect(lambda: self.refreshCal(calendar2)) #refresh
         calendar2.setFixedSize(200,200)
         #calendar2.clicked.connect(self.showDate)
         self.calendar2 = calendar2
@@ -341,6 +336,11 @@ class Toolbox(QWidget):
         self.animate.clicked.connect(self.anim)
         self.layout.addWidget(self.animate, 7, 0, rowSpan = 1, columnSpan = 2)
 
+    def refreshCal(self, calendar):
+        print('refresh')
+        calendar.hide()
+        calendar.show()
+
     def report(self):
         earliest = self.calendar1.selectedDate().toPython()
         earliest = datetime(year=earliest.year, month=earliest.month, day=earliest.day)
@@ -378,11 +378,32 @@ class Toolbox(QWidget):
         self.loadingMessage.setIcon(QMessageBox.NoIcon)
         self.loadingMessage.setStandardButtons(QMessageBox.NoButton)
 
-        calc.signals.finished.connect(lambda: self.loadingMessage.done(0)) #finishing background calculations turn off the loading box
+        calc.signals.finished.connect(self.resultGot) #finishing background calculations turn off the loading box
         calc.signals.error.connect(lambda: self.spawnError('error during calculation')) #throw error
 
         self.threadpool.start(calc)
         self.loadingMessage.exec_()
+
+    def resultGot(self):
+
+        #close the loading message
+        self.loadingMessage.done(0)
+
+        #update solutions list
+        self.solutions.clear()
+
+        #add new result to list
+        global results
+
+        #print(results)
+        for i in results:
+            iItem = QTreeWidgetItem([
+                i.launch.strftime('%Y.%m.%d'),
+                str(i.deltaV),
+                str(i.duration.total_seconds()/ 31556952),
+                ', '.join(i.flyby)
+            ])
+            self.solutions.addTopLevelItem(iItem)
 
     def spawnError(self, errMessage):
 
