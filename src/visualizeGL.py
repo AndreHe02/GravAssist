@@ -227,34 +227,53 @@ class probe(drawableType):
 
         qobj = gluNewQuadric()
 
-        glShadeModel(GL_FLAT)
-        glColor4f(1,1,1,1)
-
         glPushMatrix()
-        glTranslate(pos[0], pos[1], pos[2])
-
-        vertices = [(r * np.cos(t), r * np.sin(t)) for t in np.linspace(0, 2 * np.pi, 5)] #vertices for a square
-
         try:
-            rotateTo([0, 0, 1], EYE-LOOK_AT)
+            glTranslate(pos[0], pos[1], pos[2])
+
+            #               x               y               texX            texY
+            vertices = [(r * np.cos(t), r * np.sin(t), (np.cos(t)+1)/2, (np.sin(t)+1)/2) for t in np.linspace(0, 2 * np.pi, 5)] #vertices for a square
+
+            try:
+                rotateTo([0, 0, 1], EYE-LOOK_AT)
+            except Exception as e:
+                pass
+
+            #no shading
+            #glDisable(GL_LIGHTING)
+            glDisable(GL_NORMALIZE)
+
+            #texture
+            glEnable(GL_TEXTURE_2D)
+            gluQuadricTexture(qobj, GL_TRUE)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glEnable(GL_BLEND)
+            #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+            global textures
+            glBindTexture(GL_TEXTURE_2D, textures['probe'])
+            #glDisable(GL_COLOR_MATERIAL)
+            glColor4f(0, 0, 0, 1)
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
+
+            glBegin(GL_QUADS)
+            for i, v in enumerate(vertices):
+                glTexCoord2f(v[2], v[3])
+                glVertex3f(v[0], v[1], 0)
+            glEnd()
+
+            #luSphere(qobj,r, 3, 2)
+
+            #glShadeModel(GL_SMOOTH)
+
+            #glEnable(GL_LIGHTING)
+            glEnable(GL_NORMALIZE)
         except Exception as e:
-            pass
+            print(e)
+        except Warning as e:
+            print(e)
 
-        glDisable(GL_LIGHTING)
-        glDisable(GL_NORMALIZE)
-        glBegin(GL_QUADS)
-        for v in vertices:
-            glVertex3f(v[0], v[1], 0)
-        glEnd()
-
-        #luSphere(qobj,r, 3, 2)
-
-        glShadeModel(GL_SMOOTH)
-
-        glEnable(GL_LIGHTING)
-        glEnable(GL_NORMALIZE)
-
-        glPopMatrix()
+        finally:
+            glPopMatrix()
 
 class orbit(drawableType):
 
@@ -393,7 +412,8 @@ def init(w=640, h=480):
         "jupiter":readTex('assets/jupiter-min.jpg'),
         "saturn":readTex('assets/saturn-min.jpg'),
         "neptune":readTex('assets/neptune-min.jpg'),
-        "uranus":readTex('assets/uranus-min.jpg')}
+        "uranus":readTex('assets/uranus-min.jpg'),
+        "probe":readTex('assets/probe.jpg')}
 
     global planets
 
