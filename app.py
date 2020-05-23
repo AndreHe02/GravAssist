@@ -518,6 +518,15 @@ class plyrView(QWidget):
             self.pauseVid()
         else:
             self.wasPlaying = True
+
+            global viewTime
+            global selectedSolution
+            #if finished, then go back to beginning
+            #print(selectedSolution.launch+selectedSolution.duration)
+            if viewTime >= selectedSolution.launch+selectedSolution.duration - timedelta(days = 1):
+                #print("we've reached the end game")
+                self.progress.setValue(0)
+
             self.playVid()
 
     def recurDraw(self):
@@ -530,6 +539,12 @@ class plyrView(QWidget):
             dT = timedelta(seconds = self.vidSpeed / framerate)
             viewTime = viewTime + dT
             self.progress.setValue(round((viewTime-selectedSolution.launch).total_seconds()))
+
+            if viewTime > selectedSolution.launch + selectedSolution.duration:
+                self.updateCam()
+                self.graphWidget.updateGL()
+                self.pauseVid()
+                return
 
             QTimer.singleShot(round(1000 / framerate), self.recurDraw)
 
@@ -576,7 +591,17 @@ class plyrView(QWidget):
     def progressPrs(self):
         if self.isPlaying:
             self.pauseVid()
+
     def progressRls(self):
+
+        #update screen
+        global viewTime
+        global selectedSolution
+        viewTime = selectedSolution.launch + timedelta(seconds=self.progress.value())
+
+        self.updateCam()
+        self.graphWidget.updateGL()
+
         if self.wasPlaying:
             self.playVid()
 
