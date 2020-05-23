@@ -227,12 +227,32 @@ class probe(drawableType):
 
         qobj = gluNewQuadric()
 
+        glShadeModel(GL_FLAT)
         glColor4f(1,1,1,1)
 
         glPushMatrix()
         glTranslate(pos[0], pos[1], pos[2])
 
-        gluSphere(qobj,r, 3, 3)
+        vertices = [(r * np.cos(t), r * np.sin(t)) for t in np.linspace(0, 2 * np.pi, 5)] #vertices for a square
+
+        try:
+            rotateTo([0, 0, 1], EYE-LOOK_AT)
+        except Exception as e:
+            pass
+
+        glDisable(GL_LIGHTING)
+        glDisable(GL_NORMALIZE)
+        glBegin(GL_QUADS)
+        for v in vertices:
+            glVertex3f(v[0], v[1], 0)
+        glEnd()
+
+        #luSphere(qobj,r, 3, 2)
+
+        glShadeModel(GL_SMOOTH)
+
+        glEnable(GL_LIGHTING)
+        glEnable(GL_NORMALIZE)
 
         glPopMatrix()
 
@@ -275,6 +295,7 @@ class orbit(drawableType):
             locations.append(np.array([[dist * np.cos(i), dist * np.sin(i), 0]]))
 
         glDisable(GL_TEXTURE_2D)
+        glDisable(GL_NORMALIZE)
         origWidth = glGetFloatv(GL_LINE_WIDTH)
         glLineWidth(3)
         glPushMatrix()
@@ -300,6 +321,7 @@ class orbit(drawableType):
         glPopMatrix()
         glLineWidth(origWidth)
         glEnable(GL_LIGHTING)
+        glEnable(GL_NORMALIZE)
 
 class arrow(drawableType):
     def __init__(self, color, vec):
@@ -404,6 +426,8 @@ def init(w=640, h=480):
             "Neptune", [.208, .329, .690], materials['gas'], textures['neptune'], .65, [ring(1.8, 2.2)]
             ),}
 
+
+
     #print('initted')
     #print(textures)
 
@@ -490,23 +514,29 @@ def draw(drawables = []):
     glViewport(0, 0, WIN_W, WIN_H)
 
     glDisable(GL_TEXTURE_2D)
+
+    glDisable(GL_NORMALIZE)
+    glDisable(GL_LIGHTING)
     glBegin(GL_LINES)
+
     # 以红色绘制x轴
     materials["graphElement"].setMat([1,0,0])       # 设置当前颜色为红色不透明
-    glVertex3f(-2.8, 0.0, 0.0)                      # 设置x轴顶点（x轴负方向）
-    glVertex3f(2.8, 0.0, 0.0)                       # 设置x轴顶点（x轴正方向）
+    glVertex3f(-2, 0.0, 0.0)                      # 设置x轴顶点（x轴负方向）
+    glVertex3f(2, 0.0, 0.0)                       # 设置x轴顶点（x轴正方向）
 
     # 以绿色绘制y轴
     materials["graphElement"].setMat([0,1,0])       # 设置当前颜色为绿色不透明
-    glVertex3f(0.0, -2.8, 0.0)                      # 设置y轴顶点（y轴负方向）
-    glVertex3f(0.0, 2.8, 0.0)                       # 设置y轴顶点（y轴正方向）
+    glVertex3f(0.0, -2, 0.0)                      # 设置y轴顶点（y轴负方向）
+    glVertex3f(0.0, 2, 0.0)                       # 设置y轴顶点（y轴正方向）
 
     # 以蓝色绘制z轴
     materials["graphElement"].setMat([0,0,1])       # 设置当前颜色为蓝色不透明
-    glVertex3f(0.0, 0.0, -2.8)                      # 设置z轴顶点（z轴负方向）
-    glVertex3f(0.0, 0.0, 2.8)                       # 设置z轴顶点（z轴正方向）
+    glVertex3f(0.0, 0.0, -2)                      # 设置z轴顶点（z轴负方向）
+    glVertex3f(0.0, 0.0, 2)                       # 设置z轴顶点（z轴正方向）
 
     glEnd()                              # 结束绘制线段
+    glEnable(GL_NORMALIZE)
+    glEnable(GL_LIGHTING)
 
     # 绘制
     #solids

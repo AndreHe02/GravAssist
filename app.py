@@ -342,7 +342,7 @@ class Toolbox(QWidget):
         self.layout.addWidget(self.animate, 7, 0, rowSpan = 1, columnSpan = 2)
 
     def refreshCal(self, calendar):
-        print('refresh')
+        #print('refresh')
         calendar.hide()
         calendar.show()
 
