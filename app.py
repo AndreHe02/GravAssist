@@ -13,7 +13,6 @@ from OpenGL.GLUT import *
 from datetime import datetime, timedelta
 from src.SPICE.ephemeris import ephemeris
 from src.traj import trajectory
-from src.traj import angleFromR
 from src.path_search import *
 import spiceypy as sp
 import numpy as np
@@ -713,7 +712,7 @@ class glWidget(QGLWidget):
                 #up = np.cross(vis.planets[i].body.state(viewTime)[0:3], vis.planets[i].body.state(viewTime)[4:6])
                 #up /= np.linalg.norm(up)
                 global ephem
-                traj = trajectory(vis.planets['SUN'].body, viewTime, vis.planets[i].body.state(viewTime), tExit = viewTime + timedelta(days = 20))
+                traj = trajectory(vis.planets['SUN'].body, viewTime, vis.planets[i].body.state(viewTime))
                 up = traj.up
 
                 global defaultTrajColor

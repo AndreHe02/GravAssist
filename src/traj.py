@@ -165,7 +165,11 @@ class trajectory:
 
 def angleFromR(r, trajectory):
     rR = squish(r, trajectory.rMtrx)
-    return np.arctan2(rR[1], rR[0])
+    rawAng = np.arctan2(rR[1], rR[0])
+    if rawAng < 0:
+        rawAng += np.pi * 2
+
+    return rawAng
 
 def swingby(pivot, time, state):
 
