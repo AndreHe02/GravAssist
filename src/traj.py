@@ -100,11 +100,12 @@ class trajectory:
         self.eccVec = i
         #rotational momentum direction as k
         k = h / np.linalg.norm(h)
-        self. up = k
+        self.up = k
         #figure out j from the first 2 vectors
         j = np.cross(k, i)
 
         self.rMtrx = np.array([i, j, k])
+        #print('rMtrx:',self.rMtrx)
 
         #print("ijk:", i, j, k)
         #transform 3d coordinate to 2d coordinate
@@ -164,15 +165,15 @@ class trajectory:
         #print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
 
         self.angleIn = angleFromR(r, self)
-        self.angleOut = angleFromR(self.exitState[0:3], self.deltaT+self.elements['T0'])
+        self.angleOut = angleFromR(self.exitState[0:3], self)
         if self.angleOut < self.angleIn:
             self.angleOut += np.pi*2
 
     def relPosition(self, deltaT):
         return sp.conics(self.ele, deltaT+self.elements['T0'])
 
-def angleFromR(r, trajectory):
-    rR = squish(r, trajectory.rMtrx)
+def angleFromR(r, traj):
+    rR = squish(r, traj.rMtrx)
 
     return np.arctan2(rR[1], rR[0])
 

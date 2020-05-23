@@ -129,6 +129,9 @@ class Calculator(QRunnable):
         try:
             #calculate sorted path
             solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], 2)
+
+            #print('trajectory:', solutions[0])
+
             sorted = [ path( t0, DV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], tsf['v1'])), t0+T)] ) for DV, tsf, t0, T in solutions]
 
             global results
@@ -137,9 +140,11 @@ class Calculator(QRunnable):
         except Exception as e:
             print('error:', e)
             self.signals.error.emit(69)
+            traceback.print_last()
         except Warning as e:
             print('error:', e)
             self.signals.error.emit(420)
+            traceback.print_last()
         else:
             self.signals.finished.emit()
 
