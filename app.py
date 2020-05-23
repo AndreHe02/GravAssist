@@ -13,6 +13,7 @@ from OpenGL.GLUT import *
 from datetime import datetime, timedelta
 from src.SPICE.ephemeris import ephemeris
 from src.traj import trajectory
+from src.traj import angleFromR
 from src.path_search import *
 import spiceypy as sp
 import numpy as np
@@ -179,6 +180,7 @@ class MainWindow(QMainWindow):
         self.useSplitter()
 
     def useSplitter(self):
+        #self.player = plyrView(glWidget())
         self.stacked.setCurrentWidget(self.splitter)
 
     def usePlayer(self):
@@ -190,6 +192,7 @@ class MainWindow(QMainWindow):
             msg.setStandardButtons(QMessageBox.Ok)
             retval = msg.exec_()
         else:
+            #self.player = plyrView(glWidget())
             self.player.notifyChange()
             self.stacked.setCurrentWidget(self.player)
 
@@ -425,6 +428,9 @@ class Toolbox(QWidget):
         global selectedSolution
 
         selectedSolution = results[self.solutions.indexFromItem(self.solutions.currentItem()).row()]
+
+        global viewTime
+        viewTime = selectedSolution.launch
 
         global window
         window.usePlayer()
@@ -696,6 +702,7 @@ class glWidget(QGLWidget):
         window.status.showMessage("drawing")
 
         global viewTime
+        global selectedSolution
 
         #all the planets
         for i in vis.planets:
@@ -706,7 +713,7 @@ class glWidget(QGLWidget):
                 #up = np.cross(vis.planets[i].body.state(viewTime)[0:3], vis.planets[i].body.state(viewTime)[4:6])
                 #up /= np.linalg.norm(up)
                 global ephem
-                traj = trajectory(vis.planets['SUN'].body, viewTime, vis.planets[i].body.state(viewTime))
+                traj = trajectory(vis.planets['SUN'].body, viewTime, vis.planets[i].body.state(viewTime), tExit = viewTime + timedelta(days = 20))
                 up = traj.up
 
                 global defaultTrajColor
@@ -714,11 +721,18 @@ class glWidget(QGLWidget):
                 trajDraw = vis.orbit(defaultTrajColor, [0,0,0], traj.rMtrx, traj.elements['A'], traj.elements['ECC'])
                 drawables.append(vis.drawable(trajDraw))
 
+                """
+                #for demo purpose (of prediction error):
+                if not selectedSolution == None:
+
+                    traj0 = trajectory(vis.planets['SUN'].body, selectedSolution.launch, vis.planets[i].body.state(selectedSolution.launch))
+                    T = (viewTime - selectedSolution.launch).total_seconds()
+                    drawables.append(vis.drawable(vis.probe(), traj0.relPosition(T)))"""
+
             #                                                      position                 upwards direction
             drawables.append(vis.drawable(vis.planets[i], vis.planets[i].body.state(viewTime)[0:3], up))
 
         #all other trajectories
-        global selectedSolution
         if not selectedSolution == None:
             index = 0
             global trajColors
@@ -726,8 +740,15 @@ class glWidget(QGLWidget):
                 iOrbit = vis.orbit(trajColors[index], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
                 drawables.append(vis.drawable(iOrbit))
             deltaT = (viewTime - selectedSolution.launch).total_seconds()
-            """print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
-            """#print('------')
+            #print('launch at ',selectedSolution.launch,', viewing at ',viewTime)
+            #print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
+            #print('------')
+
+        #the probe itself
+        if not selectedSolution == None:
+            deltaT = (viewTime - selectedSolution.launch).total_seconds()
+            position = selectedSolution.getPosition(deltaT)
+            drawables.append(vis.drawable(vis.probe(),pos = position))
 
         vis.draw(drawables)
         drawables = []

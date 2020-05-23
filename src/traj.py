@@ -69,19 +69,21 @@ class trajectory:
         #function documentation
         #https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/C/cspice/oscltx_c.html
 
-        self.elements = sp.oscltx(state, convert(tEntrance), self.GM)
-        self.elements = {
-            "RP": self.elements[0], #Perifocal distance.
-            "ECC": self.elements[1], #Eccentricity.
-            "INC": self.elements[2], #Inclination.
-            "LNODE": self.elements[3], #Longitude of the ascending node.
-            "ARGP": self.elements[4], #Argument of periapsis.
-            "M0": self.elements[5], #Mean anomaly at epoch.
-            "T0": self.elements[6], #Epoch.
-            "GM": self.elements[7], #Gravitational parameter.
-            "NU": self.elements[8], #True anomaly at epoch.
-            "A": self.elements[9] #Semi-major axis. A is set to zero if it is not computable.
+        self.ele = sp.oscltx(state, convert(tEntrance), self.GM) #orbital elements in array form
+        self.elements = { #orbital elements in dict form, for clarity
+            "RP": self.ele[0], #Perifocal distance.
+            "ECC": self.ele[1], #Eccentricity.
+            "INC": self.ele[2], #Inclination.
+            "LNODE": self.ele[3], #Longitude of the ascending node.
+            "ARGP": self.ele[4], #Argument of periapsis.
+            "M0": self.ele[5], #Mean anomaly at epoch.
+            "T0": self.ele[6], #Epoch.
+            "GM": self.ele[7], #Gravitational parameter.
+            "NU": self.ele[8], #True anomaly at epoch.
+            "A": self.ele[9] #Semi-major axis. A is set to zero if it is not computable.
         }
+
+        self.ele = self.ele[:8]#trim for further use
         #print(self.elements)
 
         r = np.array(state[:3])
@@ -109,7 +111,6 @@ class trajectory:
         self.angleIn = None
         self.angleOut = None
 
-
         # dA/dt = r * v / 2
         arealVelocity = mag(rR) * mag(vR) / 2
         self.av = arealVelocity
@@ -117,12 +118,9 @@ class trajectory:
         if(self.elements['ECC']<=1):
             if not tExit == None:
                 #print(tExit - tEntrance).total_seconds()
-
                 self.angleIn = angleFromR(r, self)
-                tElapsed = (tExit - tEntrance).total_seconds()
-                tState = sp.prop2b(self.GM, state, tElapsed)
+                tState = sp.conics(self.ele, convert(tExit))
                 self.angleOut = angleFromR(tState[0:3], self)
-
             return
 
         #print("results:", rR, vR)
@@ -154,13 +152,16 @@ class trajectory:
         """
 
         #exit state using deltaT
-        self.exitState = sp.prop2b(self.GM, state, self.deltaT)
+        #self.exitState = sp.prop2b(self.GM, state, self.deltaT)
+        self.exitState = sp.conics(self.ele, self.deltaT+self.elements['T0'])
 
         #print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
 
         self.angleIn = angleFromR(r, self)
-        self.angleOut = angleFromR(self.exitState[0:3], self)
+        self.angleOut = angleFromR(self.exitState[0:3], self.deltaT+self.elements['T0'])
 
+    def relPosition(self, deltaT):
+        return sp.conics(self.ele, deltaT+self.elements['T0'])
 
 def angleFromR(r, trajectory):
     rR = squish(r, trajectory.rMtrx)

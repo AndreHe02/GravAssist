@@ -89,7 +89,7 @@ class drawable(object):
             self.obj.draw(np.array([-self.pos[0], -self.pos[2], self.pos[1]])*celesScale,
                 np.array([-self.up[0], -self.up[2], self.up[1]]), solid = solid)
         elif type(self.obj).__name__ == 'probe':
-            self.obj.draw(np.array(-self.pos[0], -self.pos[2], self.pos[1])*celesScale)
+            self.obj.draw(np.array([-self.pos[0], -self.pos[2], self.pos[1]])*celesScale)
         else:
             self.obj.draw()
 
@@ -213,7 +213,28 @@ class probe(drawableType):
         super(probe, self).__init__()
 
     def draw(self, pos):
-        pass
+        global scalingArm
+        global LOOK_AT
+        global EYE
+
+        constScale = 1
+
+        currArm = np.linalg.norm(LOOK_AT - EYE)
+        #if currArm < scalingArm:
+        constScale = currArm / scalingArm
+
+        r = 0.5 * constScale
+
+        qobj = gluNewQuadric()
+
+        glColor4f(1,1,1,1)
+
+        glPushMatrix()
+        glTranslate(pos[0], pos[1], pos[2])
+
+        gluSphere(qobj,r, 3, 3)
+
+        glPopMatrix()
 
 class orbit(drawableType):
 
@@ -233,15 +254,18 @@ class orbit(drawableType):
     def draw(self):
         invMtrx = np.linalg.inv(self.mtrx)
 
-        if self.angleIn == None:
+        if self.angleIn == None and self.angleOut == None:
             lo = -1 * np.pi
-        else:
-            lo = self.angleIn
-        if self.angleOut == None:
             hi = np.pi
+            angs = np.linspace(lo, hi, num = 100)
         else:
-            hi = self.angleOut
-        angs = np.linspace(lo, hi, num = 100)
+            angs = np.linspace(self.angleIn, self.angleOut, num = 100)
+
+        #if self.angleOut == None:
+            #hi = np.pi
+        #else:
+            #hi = self.angleOut
+        #angs = np.linspace(lo, hi, num = 100)
         locations = []
 
         #get vertices
@@ -255,6 +279,7 @@ class orbit(drawableType):
         glLineWidth(3)
         glPushMatrix()
         glTranslate(-self.foc[0], -self.foc[2], self.foc[1])
+
 
         #set appearance
         global materials
