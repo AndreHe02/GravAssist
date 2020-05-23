@@ -14,7 +14,7 @@ LEFT_IS_DOWNED = False                              # 鼠标左键被按下
 RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
 MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
 
-VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 300.0])  # 视景体的left/right/bottom/top/near/far六个面
+VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 600.0])  # 视景体的left/right/bottom/top/near/far六个面
 SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
 EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
 LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
@@ -443,6 +443,7 @@ def init(w=640, h=480):
         "saturn":readTex('assets/saturn-min.jpg'),
         "neptune":readTex('assets/neptune-min.jpg'),
         "uranus":readTex('assets/uranus-min.jpg'),
+        "night":readTex('assets/night-min.jpg'),
         "probe":readTex('assets/probe.png')}
 
     global planets
@@ -474,7 +475,8 @@ def init(w=640, h=480):
             ),
         "NEPTUNE": celes(
             "Neptune", [.208, .329, .690], materials['gas'], textures['neptune'], .65, [ring(1.8, 2.2)]
-            ),}
+            )
+        }
 
 
 
@@ -589,6 +591,34 @@ def draw(drawables = []):
     glEnable(GL_LIGHTING)
 
     # 绘制
+    #sky sphere
+    qobj = gluNewQuadric()
+    glEnable(GL_TEXTURE_2D)
+    gluQuadricTexture(qobj, GL_TRUE)
+
+    global scalingArm
+    constScale = 1
+    currArm = np.linalg.norm(LOOK_AT - EYE)
+    if currArm < scalingArm:
+        constScale = currArm / scalingArm
+    #print(solid)
+
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glEnable(GL_BLEND)
+    #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
+    global textures
+    glBindTexture(GL_TEXTURE_2D, textures['night'])
+    #glDisable(GL_COLOR_MATERIAL)
+
+    glColor4f(0,0,0,1)
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
+
+    global celesScale
+    gluSphere(qobj, 35 * 149597870 * celesScale * constScale, 100, 100)
+    #sphere(qobj, 30 * 149597870 * constScale, self.emit, self.mat)
+
+    gluDeleteQuadric(qobj)
+
     #solids
     for i in drawables:
         if type(i.obj).__name__=='celes':
