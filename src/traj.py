@@ -62,6 +62,9 @@ class trajectory:
         self.body = body
         self.entranceState = state
 
+        self.tExit = tExit
+        self.tEntrance = tEntrance
+
         self.GM = body.Gmass[0]
 
         #output vars explanation
@@ -121,6 +124,9 @@ class trajectory:
                 self.angleIn = angleFromR(r, self)
                 tState = sp.conics(self.ele, convert(tExit))
                 self.angleOut = angleFromR(tState[0:3], self)
+
+                if self.angleOut < self.angleIn:
+                    self.angleOut += np.pi*2
             return
 
         #print("results:", rR, vR)
@@ -159,17 +165,16 @@ class trajectory:
 
         self.angleIn = angleFromR(r, self)
         self.angleOut = angleFromR(self.exitState[0:3], self.deltaT+self.elements['T0'])
+        if self.angleOut < self.angleIn:
+            self.angleOut += np.pi*2
 
     def relPosition(self, deltaT):
         return sp.conics(self.ele, deltaT+self.elements['T0'])
 
 def angleFromR(r, trajectory):
     rR = squish(r, trajectory.rMtrx)
-    rawAng = np.arctan2(rR[1], rR[0])
-    if rawAng < 0:
-        rawAng += np.pi * 2
 
-    return rawAng
+    return np.arctan2(rR[1], rR[0])
 
 def swingby(pivot, time, state):
 
