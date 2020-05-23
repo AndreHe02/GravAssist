@@ -78,13 +78,14 @@ def lambert_transfer(p1, p2, T, GM):
         r2E = np.matmul(R2E, r2R)
         #calculate time by Keplar's area law
         warnings.filterwarnings('error')
-        try: th = np.arccos(np.sum(r1E * r2E) / norm(r1E) / norm(r2E))
-        except Warning as e:
-            print('...except reached:', e)
-            th = 0
-        except Exception as e:
-            print('...except reached:', e)
-            th = 0
+        #try: 
+        th = np.arccos(min(1, max(-1, np.sum(r1E * r2E) / norm(r1E) / norm(r2E)))) #restrict to domain
+        #except Warning as e:
+            #print('...except reached:', e)
+            #th = 0
+        #except Exception as e:
+            #print('...except reached:', e)
+            #th = 0
         if np.isnan(th): th = 0
         if th > np.pi: th = np.pi - th
         AreaE = aE * bE * np.pi

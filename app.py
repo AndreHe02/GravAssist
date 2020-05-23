@@ -90,7 +90,7 @@ class path(object):
             if flightTime >= (e - self.launch).total_seconds():
                 return flightTime - (e-self.launch).total_seconds()
 
-def calculatePath(departure, arrival, earliest, latest, sun):
+def calculatePath(departure, arrival, earliest, latest, sun, precision=5):
 
     #show only optimal path
     #tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
@@ -98,7 +98,7 @@ def calculatePath(departure, arrival, earliest, latest, sun):
     #return [tsf_path]
 
     #show sampled paths sorted by DV
-    solutions = sorted_transfers(departure, arrival, earliest, latest, sun.Gmass[0], 5)
+    solutions = sorted_transfers(departure, arrival, earliest, latest, sun.Gmass[0], precision)
 
     return [ path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])), tExit = t0+T)] ) for DV, tsf, t0, T in solutions]
 

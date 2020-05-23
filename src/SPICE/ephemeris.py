@@ -5,7 +5,7 @@ class ephemeris:
 
     def __init__(self, sp, root_dir, METADATA='metadata.tm', mode='LT+S', observer='SOLAR SYSTEM BARYCENTER'):
         self.sp = sp
-        os.chdir(root_dir + '/src/spice/')
+        os.chdir(root_dir + '/src/SPICE/')
         self.sp.furnsh(METADATA)
         os.chdir(root_dir)
         self.mode = mode
