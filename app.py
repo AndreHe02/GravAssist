@@ -35,6 +35,7 @@ faulthandler.enable()
 drawables = []
 defaultTrajColor = [130, 184, 97]
 trajColors = [[255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255]]
+flightPathColor = [156, 61, 219] #yay purple
 
 framerate = 30.0
 
@@ -191,10 +192,11 @@ class MainWindow(QMainWindow):
         global selectedSolution
         selectedSolution = None
         #self.splitter = cntrView(glWidget(), Toolbox())
+        #vis.init()
         self.splitter.graphWidget.initializeGL()
-        self.stacked.setCurrentWidget(self.splitter)
 
-        self.splitter.graphWidget.updateGL()
+        vis.defaultConfig()
+        self.stacked.setCurrentWidget(self.splitter)
 
     def usePlayer(self):
         global selectedSolution
@@ -524,6 +526,7 @@ class plyrView(QWidget):
 
         self.progress.setMinimum(0)
         self.progress.setMaximum(ss.duration.total_seconds())
+        self.progress.setValue(0)
 
 
     def playBtn(self):
@@ -775,7 +778,8 @@ class glWidget(QGLWidget):
             index = 0
             global trajColors
             for i in selectedSolution.trajectories:
-                iOrbit = vis.orbit(trajColors[index], i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
+                global flightPathColor
+                iOrbit = vis.orbit(flightPathColor, i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
                 drawables.append(vis.drawable(iOrbit))
             deltaT = (viewTime - selectedSolution.launch).total_seconds()
             #print('launch at ',selectedSolution.launch,', viewing at ',viewTime)

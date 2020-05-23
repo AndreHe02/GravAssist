@@ -8,20 +8,50 @@ from PIL import Image as Image
 import sys
 import math
 
-def defaultConfig(w = 640, h = 480):
+IS_PERSPECTIVE = True                             # 透视投影
+WIN_W, WIN_H = 640, 480                                 # 保存窗口宽度和高度的变量
+LEFT_IS_DOWNED = False                              # 鼠标左键被按下
+RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
+MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
 
-    global IS_PERSPECTIVE, VIEW, SCALE_K, EYE, LOOK_AT, EYE_UP, WIN_W, WIN_H, LEFT_IS_DOWNED, RIGHT_IS_DOWNED, MOUSE_X, MOUSE_Y
+VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 300.0])  # 视景体的left/right/bottom/top/near/far六个面
+SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
+EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
+LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
+EYE_UP = np.array([0.0, 1.0, 0.0])                  # 定义对观察者而言的上方（默认y轴的正方向）
 
-    IS_PERSPECTIVE = True                             # 透视投影
+DIST = 0
+PHI = 0
+THETA = 0
+
+def getposture():
+    global EYE, LOOK_AT
+
+    dist = np.linalg.norm(EYE-LOOK_AT)
+    if dist > 0:
+        phi = np.arcsin((EYE[1]-LOOK_AT[1])/dist)
+        theta = np.arcsin((EYE[0]-LOOK_AT[0])/(dist*np.cos(phi)))
+    else:
+        phi = 0.0
+        theta = 0.0
+
+    return dist, phi, theta
+
+def defaultConfig():
+
+    #print('default config set')
+
+    global VIEW, SCALE_K, EYE, LOOK_AT, EYE_UP
+
     VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 300.0])  # 视景体的left/right/bottom/top/near/far六个面
     SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
     EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
     LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
     EYE_UP = np.array([0.0, 1.0, 0.0])                  # 定义对观察者而言的上方（默认y轴的正方向）
-    WIN_W, WIN_H = w, h                                 # 保存窗口宽度和高度的变量
-    LEFT_IS_DOWNED = False                              # 鼠标左键被按下
-    RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
-    MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
+
+    global DIST, PHI, THETA
+    DIST, PHI, THETA = getposture()                     # 眼睛与观察目标之间的距离、仰角、方位角
+
 
 defaultConfig()
 
@@ -49,7 +79,10 @@ def readTex(filename):
 
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.size[0], img.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
+    if filename[filename.rfind('.')+1:] == 'png':
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, img.size[0], img.size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
+    else:
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, img.size[0], img.size[1], 0, GL_RGB, GL_UNSIGNED_BYTE, img_data)
 
     #print("concluding",filename," takes: ",(time.time()-t)/1000)
     return textID
@@ -237,8 +270,7 @@ class probe(drawableType):
         try:
             glTranslate(pos[0], pos[1], pos[2])
 
-            #               x               y               texX            texY
-            vertices = [(r * np.cos(t), r * np.sin(t), (np.cos(t)+1)/2, (np.sin(t)+1)/2) for t in np.linspace(0, 2 * np.pi, 5)] #vertices for a square
+            vertices = [(r * np.cos(t), r * np.sin(t)) for t in np.linspace(0, 2 * np.pi, 4, endpoint = False)] #vertices for a square
 
             try:
                 rotateTo([0, 0, 1], EYE-LOOK_AT)
@@ -253,6 +285,7 @@ class probe(drawableType):
             glEnable(GL_TEXTURE_2D)
             gluQuadricTexture(qobj, GL_TRUE)
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+            glDepthFunc(GL_ALWAYS)
             glEnable(GL_BLEND)
             #glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
             global textures
@@ -261,9 +294,12 @@ class probe(drawableType):
             glColor4f(0, 0, 0, 1)
             glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
 
+            #print(vertices)
+            tV = [[0, 0], [0, 1], [1, 1], [1, 0]]
+
             glBegin(GL_QUADS)
             for i, v in enumerate(vertices):
-                glTexCoord2f(v[2], v[3])
+                glTexCoord2f(tV[i][0], tV[i][1])
                 glVertex3f(v[0], v[1], 0)
             glEnd()
 
@@ -279,6 +315,7 @@ class probe(drawableType):
             print(e)
 
         finally:
+            glDepthFunc(GL_LEQUAL)
             glPopMatrix()
 
 class orbit(drawableType):
@@ -362,25 +399,9 @@ class ring(object):
         self.r = r
         self.R = R
 
-def getposture():
-    global EYE, LOOK_AT
-
-    dist = np.linalg.norm(EYE-LOOK_AT)
-    if dist > 0:
-        phi = np.arcsin((EYE[1]-LOOK_AT[1])/dist)
-        theta = np.arcsin((EYE[0]-LOOK_AT[0])/(dist*np.cos(phi)))
-    else:
-        phi = 0.0
-        theta = 0.0
-
-    return dist, phi, theta
-
-DIST, PHI, THETA = getposture()                     # 眼睛与观察目标之间的距离、仰角、方位角
-
 def init(w=640, h=480):
 
     defaultConfig()
-
     global WIN_W, WIN_H
     WIN_W, WIN_H = w, h
 
@@ -422,7 +443,7 @@ def init(w=640, h=480):
         "saturn":readTex('assets/saturn-min.jpg'),
         "neptune":readTex('assets/neptune-min.jpg'),
         "uranus":readTex('assets/uranus-min.jpg'),
-        "probe":readTex('assets/probe.jpg')}
+        "probe":readTex('assets/probe.png')}
 
     global planets
 
