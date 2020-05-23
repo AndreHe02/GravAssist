@@ -8,16 +8,22 @@ from PIL import Image as Image
 import sys
 import math
 
-IS_PERSPECTIVE = True                             # 透视投影
-VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 300.0])  # 视景体的left/right/bottom/top/near/far六个面
-SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
-EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
-LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
-EYE_UP = np.array([0.0, 1.0, 0.0])                  # 定义对观察者而言的上方（默认y轴的正方向）
-WIN_W, WIN_H = 640, 480                             # 保存窗口宽度和高度的变量
-LEFT_IS_DOWNED = False                              # 鼠标左键被按下
-RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
-MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
+def defaultConfig(w = 640, h = 480):
+
+    global IS_PERSPECTIVE, VIEW, SCALE_K, EYE, LOOK_AT, EYE_UP, WIN_W, WIN_H, LEFT_IS_DOWNED, RIGHT_IS_DOWNED, MOUSE_X, MOUSE_Y
+
+    IS_PERSPECTIVE = True                             # 透视投影
+    VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 300.0])  # 视景体的left/right/bottom/top/near/far六个面
+    SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
+    EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
+    LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
+    EYE_UP = np.array([0.0, 1.0, 0.0])                  # 定义对观察者而言的上方（默认y轴的正方向）
+    WIN_W, WIN_H = w, h                                 # 保存窗口宽度和高度的变量
+    LEFT_IS_DOWNED = False                              # 鼠标左键被按下
+    RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
+    MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
+
+defaultConfig()
 
 celesScale = 4.4 / 149597870
 
@@ -372,6 +378,9 @@ def getposture():
 DIST, PHI, THETA = getposture()                     # 眼睛与观察目标之间的距离、仰角、方位角
 
 def init(w=640, h=480):
+
+    defaultConfig()
+
     global WIN_W, WIN_H
     WIN_W, WIN_H = w, h
 

@@ -21,6 +21,8 @@ import os
 import src.visualizeGL as vis
 import faulthandler
 
+from importlib import reload
+
 #
 # data related
 #
@@ -184,8 +186,15 @@ class MainWindow(QMainWindow):
         self.useSplitter()
 
     def useSplitter(self):
-        #self.player = plyrView(glWidget())
+
+        #cancel selection
+        global selectedSolution
+        selectedSolution = None
+        #self.splitter = cntrView(glWidget(), Toolbox())
+        self.splitter.graphWidget.initializeGL()
         self.stacked.setCurrentWidget(self.splitter)
+
+        self.splitter.graphWidget.updateGL()
 
     def usePlayer(self):
         global selectedSolution
