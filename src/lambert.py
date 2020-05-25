@@ -15,10 +15,7 @@ def lambert_transfer(p1, p2, T, GM):
 
     #keep p1 as shorter leg
     mirrored = norm(p2) < norm(p1)
-    if mirrored:
-        temp = p1
-        p1 = p2
-        p2 = temp
+    if mirrored: p1, p2 = p2, p1
 
     #compute dimension reduction matrix
     i = p1 / norm(p1)
@@ -100,7 +97,13 @@ def lambert_transfer(p1, p2, T, GM):
         dt = AfR / AreaE * TE
 
         #compute initial and final velocities
-        if mirrored: rhref = np.cross(r2E, r1E)
+        #get speed from energy equation
+        s1 = np.sqrt(GM * (2 / norm(p1) - 1/aE))
+        s2 = np.sqrt(GM * (2 / norm(p2) - 1/aE))
+        if mirrored: 
+            rhref = np.cross(r2E, r1E)
+            r1E, r2E = r2E, r1E
+            s1, s2 = s2, s1
         else: rhref = np.cross(r1E, r2E)
         v1E = np.cross(rhref, r1E)
         v2E = np.cross(rhref, r2E)
@@ -108,8 +111,6 @@ def lambert_transfer(p1, p2, T, GM):
         v2R = np.matmul(E2R, v2E)
         v1 = Rinv(v1R)
         v2 = Rinv(v2R)
-        s1 = np.sqrt(GM * (2 / norm(p1) - 1/aE))
-        s2 = np.sqrt(GM * (2 / norm(p2) - 1/aE))
         v1 = v1 / norm(v1) * s1
         v2 = v2 / norm(v2) * s2
 

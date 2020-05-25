@@ -34,3 +34,6 @@ Temporary Items
 
 #ignoring large data files: .bsp
 *.bsp
+
+#ignore python files
+*.pyc
