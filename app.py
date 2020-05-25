@@ -194,9 +194,11 @@ class MainWindow(QMainWindow):
         #self.splitter = cntrView(glWidget(), Toolbox())
         #vis.init()
         self.splitter.graphWidget.initializeGL()
-
         vis.defaultConfig()
         self.stacked.setCurrentWidget(self.splitter)
+
+        self.splitter.graphWidget.resizeGL(self.splitter.graphWidget.frameGeometry().width()*2, self.splitter.graphWidget.frameGeometry().height()*2)
+
 
     def usePlayer(self):
         global selectedSolution
