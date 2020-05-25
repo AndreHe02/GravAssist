@@ -39,6 +39,10 @@ flightPathColor = [156, 61, 219] #yay purple
 
 framerate = 30.0
 
+known_missions = [
+    'voyager'
+]
+
 class path(object):
 
     def __init__(self, launchTime, deltaV, duration, entranceTimes, trajectories):
@@ -93,30 +97,44 @@ class path(object):
             if flightTime >= (e - self.launch).total_seconds():
                 return flightTime - (e-self.launch).total_seconds()
 
-def calculatePath(departure, arrival, earliest, latest, sun, precision=5):
-
-    #show only optimal path
-    #tsf, DV, t0, T = opt_transfer(departure, arrival, earliest, latest, sun.Gmass[0] )
-    #tsf_path = path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])))] )
-    #return [tsf_path]
-
-    #show sampled paths sorted by DV
-    solutions = sorted_transfers(departure, arrival, earliest, latest, sun.Gmass[0], precision)
-
-    return [ path( t0, DV, T, [t0], [trajectory(sun, t0, np.concatenate((departure.state(t0)[:3], tsf['v1'])), tExit = t0+T)] ) for DV, tsf, t0, T in solutions]
-
-
 class Mouse(object):
 
     def __init__(self):
         self.pos = [0,0]
         self.draggingIn = None
+
 mouse = Mouse()
 
-class Calculator(QRunnable):
+class MissionCalculator(QRunnable):
+    def __init__(self, mName):
+        super(MissionCalculator, self).__init__()
+
+        self.mName = mName
+        self.signals = Signals()
+
+    def run(self):
+        try:
+            #calculate for given mission
+            global results
+            results = [ path( datetime(2020, 4, 20), 69, timedelta(days=420), [datetime(2020, 4, 20)],
+                [trajectory(vis.planets['SUN'].body, datetime(2020, 4, 20), vis.planets['JUPITER'].body.state(datetime(2020, 6, 9)), datetime(2020, 4, 20)+timedelta(days=420))] )
+            ]
+        except Exception as e:
+            print('error:', e)
+            self.signals.error.emit(69)
+            traceback.print_last()
+        except Warning as e:
+            print('error:', e)
+            self.signals.error.emit(420)
+            traceback.print_last()
+        else:
+            self.signals.finished.emit()
+
+
+class LambertCalculator(QRunnable):
 
     def __init__(self, departure, arrival, earliest, latest, sun):
-        super(Calculator, self).__init__()
+        super(LambertCalculator, self).__init__()
 
         #take input for the run function
         self.departure = departure
@@ -131,7 +149,7 @@ class Calculator(QRunnable):
     def run(self):
         try:
             #calculate sorted path
-            solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], 2)
+            solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], precision = 3)
 
             #print('trajectory:', solutions[0])
 
@@ -284,11 +302,24 @@ class Toolbox(QWidget):
         self.content = []
 
         #label
+        l0 = QLabel()
+        l0.setText("known missions")
+        l0.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        self.layout.addWidget(l0, 0, 0)
+
+        #missions selector
+        self.missions = QComboBox()
+        global known_missions
+        self.missions.addItem('--custom setting--')
+        self.missions.addItems(known_missions)
+        self.missions.currentIndexChanged.connect(self.missionToggle)
+        self.layout.addWidget(self.missions, 0, 1)
+
+        #label
         l1 = QLabel()
         l1.setText("earliest departure")
         l1.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-        #l1.setFixedHeight(30)
-        self.layout.addWidget(l1, 0, 0)
+        self.layout.addWidget(l1, 1, 0)
         #calendar1
         calendar1 = QCalendarWidget()
         calendar1.setGridVisible(True)
@@ -299,13 +330,13 @@ class Toolbox(QWidget):
         calendar1.setFixedSize(200,200)
         #calendar1.clicked.connect(self.showDate)
         self.calendar1 = calendar1
-        self.layout.addWidget(calendar1, 1, 0)
+        self.layout.addWidget(calendar1, 2, 0)
         #label
         l2 = QLabel()
         l2.setText("latest arrival")
         l2.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         #l2.setFixedHeight(30)
-        self.layout.addWidget(l2, 0, 1)
+        self.layout.addWidget(l2, 1, 1)
         #calendar2
         calendar2 = QCalendarWidget()
         calendar2.setGridVisible(True)
@@ -316,40 +347,40 @@ class Toolbox(QWidget):
         calendar2.setFixedSize(200,200)
         #calendar2.clicked.connect(self.showDate)
         self.calendar2 = calendar2
-        self.layout.addWidget(calendar2, 1, 1)
+        self.layout.addWidget(calendar2, 2, 1)
 
         l3 = QLabel()
         l3.setText('departure from')
-        self.layout.addWidget(l3, 2, 0)
+        self.layout.addWidget(l3, 3, 0)
 
         #departure selector
         self.departure = QComboBox()
         self.departure.addItems(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'])
-        self.layout.addWidget(self.departure, 2, 1)
+        self.layout.addWidget(self.departure, 3, 1)
 
         l4 = QLabel()
         l4.setText('arrive at')
-        self.layout.addWidget(l4, 3, 0)
+        self.layout.addWidget(l4, 4, 0)
 
         #arrival selector
         self.arrival = QComboBox()
         self.arrival.addItems(['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune'])
-        self.layout.addWidget(self.arrival, 3, 1)
+        self.layout.addWidget(self.arrival, 4, 1)
 
         #calculate button
         self.calculate = QPushButton('calculate path', self)
         self.calculate.clicked.connect(self.report)
-        self.layout.addWidget(self.calculate, 4, 0, rowSpan = 1, columnSpan = 2)
+        self.layout.addWidget(self.calculate, 5, 0, rowSpan = 1, columnSpan = 2)
 
         #list of solutions
         l5 = QLabel()
         l5.setText('available paths')
-        self.layout.addWidget(l5, 5, 0)
+        self.layout.addWidget(l5, 6, 0)
         self.solutions = QTreeWidget()
         hd = QTreeWidgetItem()
         self.solutions.setHeaderLabels(['launch','deltaV (km/s)', 'duration (yr)', 'flyby'])
 
-        self.layout.addWidget(self.solutions, 6, 0, 1, 2)
+        self.layout.addWidget(self.solutions, 7, 0, 1, 2)
 
         global selectedSolution
         selectedSolution = None
@@ -357,7 +388,23 @@ class Toolbox(QWidget):
         #animate button
         self.animate = QPushButton('view animated', self)
         self.animate.clicked.connect(self.anim)
-        self.layout.addWidget(self.animate, 7, 0, rowSpan = 1, columnSpan = 2)
+        self.layout.addWidget(self.animate, 8, 0, rowSpan = 1, columnSpan = 2)
+
+    def missionToggle(self):
+        mName = self.missions.currentText()
+        global known_missions
+        if mName in known_missions:
+            #disable the custom parts
+            self.calendar1.setEnabled(False)
+            self.calendar2.setEnabled(False)
+            self.departure.setEnabled(False)
+            self.arrival.setEnabled(False)
+        else:
+            #enable the custom parts
+            self.calendar1.setEnabled(True)
+            self.calendar2.setEnabled(True)
+            self.departure.setEnabled(True)
+            self.arrival.setEnabled(True)
 
     def refreshCal(self, calendar):
         #print('refresh')
@@ -365,34 +412,40 @@ class Toolbox(QWidget):
         calendar.show()
 
     def report(self):
-        earliest = self.calendar1.selectedDate().toPython()
-        earliest = datetime(year=earliest.year, month=earliest.month, day=earliest.day)
-        latest = self.calendar2.selectedDate().toPython()
-        latest = datetime(year=latest.year, month=latest.month, day=latest.day)
-        if earliest >= latest:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText('latest arrival should come after earliest departure')
-            msg.setStandardButtons(QMessageBox.Ok)
-            retval = msg.exec_()
-            return
-        depart = self.departure.currentText()
-        arrive = self.arrival.currentText()
-        if depart == arrive:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText('departure must be different from arrival')
-            msg.setStandardButtons(QMessageBox.Ok)
-            retval = msg.exec_()
-            return
-        print('calculate the optimal path from', depart,' to ', arrive, ' that starts after', earliest,' and arrives before', latest)
+        #if a known mission is selected -> use grav assist
+        mName = self.missions.currentText()
+        calc = 0
+        global known_missions
+        if mName in known_missions:
+            calc = MissionCalculator(mName)
 
-        #calculation
-        """global results
-        results = calculatePath(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))"""
+        else:
+            #if a custome setup is selected -> use lambert
+            earliest = self.calendar1.selectedDate().toPython()
+            earliest = datetime(year=earliest.year, month=earliest.month, day=earliest.day)
+            latest = self.calendar2.selectedDate().toPython()
+            latest = datetime(year=latest.year, month=latest.month, day=latest.day)
+            if earliest >= latest:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setText('latest arrival should come after earliest departure')
+                msg.setStandardButtons(QMessageBox.Ok)
+                retval = msg.exec_()
+                return
+            depart = self.departure.currentText()
+            arrive = self.arrival.currentText()
+            if depart == arrive:
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Information)
+                msg.setText('departure must be different from arrival')
+                msg.setStandardButtons(QMessageBox.Ok)
+                retval = msg.exec_()
+                return
+            print('calculate the optimal path from', depart,' to ', arrive, ' that starts after', earliest,' and arrives before', latest)
 
-        #QRunnable for calculation
-        calc = Calculator(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))
+            #QRunnable for calculation
+            calc = LambertCalculator(ephem.get_body(depart.upper()), ephem.get_body(arrive.upper()), earliest, latest, ephem.get_body('SUN'))
+
         self.threadpool = QThreadPool()
 
         #loading message
@@ -516,11 +569,12 @@ class plyrView(QWidget):
         self.vidMode = 0
         self.layout.addWidget(self.mode, 3, 3)
 
+        """
         #info button
         self.info = QPushButton('info')
         self.info.setToolTip('show info about path')
         self.info.clicked.connect(self.showInfo)
-        self.layout.addWidget(self.info, 3, 4)
+        self.layout.addWidget(self.info, 3, 4)"""
 
     def notifyChange(self):
         global selectedSolution
