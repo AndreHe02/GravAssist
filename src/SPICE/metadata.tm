@@ -24,5 +24,6 @@ KPL/MK
    KERNELS_TO_LOAD = ( 'kernels/lsk/naif0012.tls',
                        'kernels/pck/pck00010.tpc',
                        'kernels/pck/gm_de431.tpc',
-                       'kernels/spk/de438.bsp')
+                       'kernels/spk/de438.bsp',
+	       'kernels/spk/voyager_1.ST+1991_a54418u.merged.bsp')
    \begintext

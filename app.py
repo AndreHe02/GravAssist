@@ -13,7 +13,8 @@ from OpenGL.GLUT import *
 from datetime import datetime, timedelta
 from src.SPICE.ephemeris import ephemeris
 from src.traj import trajectory
-from src.path_search import *
+from src.optimize import *
+from src.lambert import *
 import spiceypy as sp
 import numpy as np
 import os
@@ -40,7 +41,8 @@ flightPathColor = [156, 61, 219] #yay purple
 framerate = 30.0
 
 known_missions = [
-    'voyager'
+    'voyager 1',
+    'voyager 2'
 ]
 
 class path(object):
@@ -148,13 +150,47 @@ class LambertCalculator(QRunnable):
     @Slot()
     def run(self):
         try:
+            
+            K = 5  #sample density and decay rate
+            N = 1  #how many solutions to keep
+            ITERS = 2 #for descent minimization
+            tE, tL = self.earliest, self.latest
+            GM = self.sun.Gmass[0]
+            F = lambda t0, T: direct_transfer_cost(self.departure, self.arrival, t0, T, GM)[0]
+            C = lambda t0, T: t0 + T < tL
+            
+            #sample for initial conditions
+            inits = []
+            for i in range(K):
+                for j in range(K):
+                    t0_ = tE + (tL-tE) * i / K
+                    T_ = (tL - t0_) * j / K
+                    dV = F(t0_, T_)
+                    if dV: inits.append([dV, t0_, T_])
+            inits = sorted(inits, key=lambda x: x[0])
+            
+            #descend to local minima
+            ranges = [[tE, tL], [timedelta(days=0), tL-tE]]
+            steps = [(tL-tE)/K/K, (tL-tE)/K/K]        
+            solutions = []
+            for initial in inits[:N]:
+                pinit = initial[1:]
+                res = decaying_descent(F, ranges, steps, pinit,
+                           condition=C, iters = ITERS, decay_factor=K)
+                dV, solution = direct_transfer_cost(self.departure, self.arrival, res[0], res[1], GM)
+                solutions.append([dV, res[0], res[1], solution])
+            solutions = sorted(solutions, key=lambda x: x[0])
+            
+            return [path(t0, dV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], sol['v1'])), t0+T)]) for dV, t0, T, sol in solutions]
+            
+            '''
             #calculate sorted path
             solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], precision = 3)
 
             #print('trajectory:', solutions[0])
 
             sorted = [ path( t0, DV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], tsf['v1'])), t0+T)] ) for DV, tsf, t0, T in solutions]
-
+            '''
             global results
             results = sorted
 
