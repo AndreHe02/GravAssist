@@ -6,18 +6,18 @@ def steep_descent(f, ranges, steps, tolerance, pinit, condition):
     #random initialization until valid
     if not pinit: 
         p = [lo + (hi-lo) * random.random() for lo, hi in ranges]
+        c = 0
         while not condition(*p) or f(*p) == None: 
-            p = [lo + (hi-lo) * random.random() for lo, hi in ranges]
+            if c > 10: return None   #failed to initialize
+            else: c += 1
+            p = [lo + (hi-lo) * random.random() for lo, hi in ranges]          
     else: p = pinit
-        
     k = len(ranges)
     flat = 0
     fmin_yet = f(*p)
     visited = [p]
-    
     #descend until no lower gridpoint exists
     while True:
-        print('DV', fmin_yet)
         fmin, pnext = None, None       
         for idx in range(pow(3, k)):
             #generate new parameters
@@ -35,18 +35,17 @@ def steep_descent(f, ranges, steps, tolerance, pinit, condition):
         if fmin == None or fmin >= fmin_yet: return p
         fmin_yet, p = fmin, pnext
     
-
 #descent in decaying step sizes,
 #giving increasingly accurate result
 def decaying_descent(f, ranges, steps, condition, iters, decay_factor, tolerance, pinit):
     ranges = np.array(ranges)
     steps = np.array(steps)
     p = steep_descent(f, ranges, steps, tolerance, pinit, condition)
+    if p == None: return None #failed to initialize
     for _ in range(1, iters):
-        upper = p + (ranges[:, 1] - ranges[:, 0]) / decay_factor
-        lower = p - (ranges[:, 1] - ranges[:, 0]) / decay_factor
+        upper = p + steps
+        lower = p - steps
         ranges = np.array([x for x in zip(lower, upper)])
         steps = steps / decay_factor
         p = steep_descent(f, ranges, steps, tolerance, p, condition)
     return p
-        
