@@ -62,16 +62,19 @@ class MissionCalculator(QRunnable):
         self.mName = mName
         self.signals = Signals()
 
-    def run(self):
+    def run(self, ephem_=None):
         try:
             #calculate for given mission
             global results
             global ephem
             
+            if not ephem_: ep = ephem
+            else: ep = ephem_
+                
             if self.mName == 'VOYAGER 1':
-                results = [voyager1_recreated(ephem), voyager1_original(ephem)]
+                results = [voyager1_recreated(ep), voyager1_original(ep)]
             elif self.mName == 'VOYAGER 2':
-                results = [voyager2_recreated(ephem), voyager2_original(ephem)]
+                results = [voyager2_recreated(ep), voyager2_original(ep)]
             return results
             
         except Exception as e:
