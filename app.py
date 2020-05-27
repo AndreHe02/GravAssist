@@ -15,6 +15,8 @@ from src.SPICE.ephemeris import ephemeris
 from src.traj import trajectory
 from src.optimize import *
 from src.lambert import *
+from src.voyager_missions import *
+from src.path import *
 import spiceypy as sp
 import numpy as np
 import os
@@ -41,63 +43,9 @@ flightPathColor = [156, 61, 219] #yay purple
 framerate = 30.0
 
 known_missions = [
-    'voyager 1',
-    'voyager 2'
+    'VOYAGER 1',
+    'VOYAGER 2'
 ]
-
-class path(object):
-
-    def __init__(self, launchTime, deltaV, duration, entranceTimes, trajectories):
-        #this is just for demo
-        self.launch = launchTime
-
-        #other basic info for display
-        self.deltaV = deltaV
-
-        #in timedelta form
-        self.duration = duration
-
-        #a list of times on which the probe enters a trajectory,
-        #the length of this array should match that of the length of trajectories
-        self.entranceTimes = entranceTimes
-        self.trajectories = trajectories
-
-        self.flyby = []
-        for i in self.trajectories:
-            self.flyby.append(i.body.name)
-
-    #what absolute position is the probe at 'time'
-    def getPosition(self, flightTime):
-        t = self.getTrajTime(flightTime)
-        traj = self.getTrajectory(flightTime)
-
-        area = traj.av * t
-        absTime = self.launch+timedelta(seconds=flightTime)
-        #print('t: ', self.launch+timedelta(seconds=flightTime))
-        #print('tName: ', type(absTime).__name__)
-        return np.array(traj.body.state(absTime)[0:3]) + np.array(sp.prop2b(traj.GM, traj.entranceState, t)[0:3])
-
-    def getRelPosition(self, flightTime):
-        t = self.getTrajTime(flightTime)
-        traj = self.getTrajectory(flightTime)
-
-        area = traj.av * t
-        absTime = self.launch+timedelta(seconds=flightTime)
-        #print('t: ', self.launch+timedelta(seconds=flightTime))
-        #print('tName: ', type(absTime).__name__)
-        return np.array(sp.prop2b(traj.GM, traj.entranceState, t)[0:3])
-
-    #what trajectory is the probe in at 'time'
-    def getTrajectory(self, flightTime):
-        for i, e in reversed(list(enumerate(self.entranceTimes))):
-            if flightTime >= (e - self.launch).total_seconds():
-                return self.trajectories[i]
-
-    #time in orbit
-    def getTrajTime(self, flightTime):
-        for i, e in reversed(list(enumerate(self.entranceTimes))):
-            if flightTime >= (e - self.launch).total_seconds():
-                return flightTime - (e-self.launch).total_seconds()
 
 class Mouse(object):
 
@@ -118,9 +66,14 @@ class MissionCalculator(QRunnable):
         try:
             #calculate for given mission
             global results
-            results = [ path( datetime(2020, 4, 20), 69, timedelta(days=420), [datetime(2020, 4, 20)],
-                [trajectory(vis.planets['SUN'].body, datetime(2020, 4, 20), vis.planets['JUPITER'].body.state(datetime(2020, 6, 9)), datetime(2020, 4, 20)+timedelta(days=420))] )
-            ]
+            global ephem
+            
+            if self.mName == 'VOYAGER 1':
+                results = [voyager1_recreated(ephem), voyager1_original(ephem)]
+            elif self.mName == 'VOYAGER 2':
+                results = [voyager2_recreated(ephem), voyager2_original(ephem)]
+            return results
+            
         except Exception as e:
             print('error:', e)
             self.signals.error.emit(69)
@@ -181,18 +134,9 @@ class LambertCalculator(QRunnable):
                 solutions.append([dV, res[0], res[1], solution])
             solutions = sorted(solutions, key=lambda x: x[0])
             
-            return [path(t0, dV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], sol['v1'])), t0+T)]) for dV, t0, T, sol in solutions]
-            
-            '''
-            #calculate sorted path
-            solutions = sorted_transfers(self.departure, self.arrival, self.earliest, self.latest, self.sun.Gmass[0], precision = 3)
-
-            #print('trajectory:', solutions[0])
-
-            sorted = [ path( t0, DV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], tsf['v1'])), t0+T)] ) for DV, tsf, t0, T in solutions]
-            '''
             global results
-            results = sorted
+            results = [path(t0, dV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], sol['v1'])), t0+T)]) for dV, t0, T, sol in solutions]
+            
 
         except Exception as e:
             print('error:', e)

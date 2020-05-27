@@ -25,5 +25,6 @@ KPL/MK
                        'kernels/pck/pck00010.tpc',
                        'kernels/pck/gm_de431.tpc',
                        'kernels/spk/de438.bsp',
-	       'kernels/spk/voyager_1.ST+1991_a54418u.merged.bsp')
+	       'kernels/spk/voyager_1.ST+1991_a54418u.merged.bsp',
+	       'kernels/spk/voyager_2.ST+1992_m05208u.merged.bsp')
    \begintext
