@@ -39,6 +39,7 @@ drawables = []
 defaultTrajColor = [130, 184, 97]
 trajColors = [[255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255]]
 flightPathColor = [156, 61, 219] #yay purple
+probePathColor = [156, 61, 219]
 
 framerate = 30.0
 
@@ -75,7 +76,6 @@ class MissionCalculator(QRunnable):
                 results = [voyager1_recreated(ep), voyager1_original(ep)]
             elif self.mName == 'VOYAGER 2':
                 results = [voyager2_recreated(ep), voyager2_original(ep)]
-            #return results
 
         except Exception as e:
             print('error:', e)
@@ -461,7 +461,7 @@ class Toolbox(QWidget):
                 i.launch.strftime('%Y.%m.%d'),
                 str(i.deltaV),
                 str(i.duration.total_seconds()/ 31556952),
-                ', '.join(i.flyby)
+                ', '.join([f for f in i.flyby if f != 'SUN'])
             ])
             self.solutions.addTopLevelItem(iItem)
 
@@ -485,6 +485,16 @@ class Toolbox(QWidget):
 
         global viewTime
         viewTime = selectedSolution.launch
+
+        #calculate positions
+        global probePositions
+
+        timeLerps = np.linspace(0, 1, len(selectedSolution.trajectories) * 20)
+        probePositions = []
+
+        for tL in timeLerps:
+            tTemp = selectedSolution.launch + tL * selectedSolution.duration
+            probePositions.append(selectedSolution.getPosition(tL * selectedSolution.duration.total_seconds()))
 
         global window
         window.usePlayer()
@@ -813,23 +823,28 @@ class glWidget(QGLWidget):
             #                                                      position                 upwards direction
             drawables.append(vis.drawable(vis.planets[i], vis.planets[i].body.state(viewTime)[0:3], up))
 
+        """
         #all other trajectories
         if not selectedSolution == None:
             index = 0
             global trajColors
-            for i in selectedSolution.trajectories:
+            for i, tr in enumerate(selectedSolution.trajectories):
                 global flightPathColor
-                iOrbit = vis.orbit(flightPathColor, i.body.state(viewTime)[0:3], i.rMtrx, i.elements['A'], i.elements['ECC'], i.angleIn, i.angleOut)
+                iOrbit = vis.orbit(flightPathColor, tr.body.state(selectedSolution.entranceTimes[i])[0:3], tr.rMtrx, tr.elements['A'], tr.elements['ECC'], tr.angleIn, tr.angleOut)
                 drawables.append(vis.drawable(iOrbit))
             deltaT = (viewTime - selectedSolution.launch).total_seconds()
             #print('launch at ',selectedSolution.launch,', viewing at ',viewTime)
             #print("t = ", deltaT, "s, at ", selectedSolution.getPosition(deltaT), " on orbit around ", selectedSolution.getTrajectory(deltaT).body.name)
-            #print('------')
+            #print('------')"""
 
         #the probe itself
         if not selectedSolution == None:
             deltaT = (viewTime - selectedSolution.launch).total_seconds()
             position = selectedSolution.getPosition(deltaT)
+
+            global probePositions
+            drawables.append(vis.drawable(vis.probePath(probePathColor, probePositions)))
+
             drawables.append(vis.drawable(vis.probe(),pos = position))
 
         vis.draw(drawables)

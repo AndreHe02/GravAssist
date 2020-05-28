@@ -318,6 +318,36 @@ class probe(drawableType):
             glDepthFunc(GL_LEQUAL)
             glPopMatrix()
 
+class probePath(drawableType):
+    def __init__(self, color, posList):
+        super(probePath, self).__init__()
+        self.pos = posList
+        self.color = color
+
+    def draw(self):
+        glDisable(GL_TEXTURE_2D)
+        glDisable(GL_NORMALIZE)
+        origWidth = glGetFloatv(GL_LINE_WIDTH)
+        glLineWidth(3)
+
+        #set appearance
+        global materials
+        materials['graphElement'].setMat([self.color[0]/255, self.color[1]/255, self.color[2]/255])
+        glColor3f(self.color[0]/255, self.color[1]/255, self.color[2]/255)
+
+        glDisable(GL_LIGHTING)
+        #draw
+        glBegin(GL_LINE_STRIP)
+        global celesScale
+        for i in self.pos:
+            temp = i * celesScale
+            #print(i)
+            glVertex3f(-temp[0], -temp[2], temp[1])
+        glEnd()
+        glLineWidth(origWidth)
+        glEnable(GL_LIGHTING)
+        glEnable(GL_NORMALIZE)
+
 class orbit(drawableType):
 
     def __init__(self, color, foc, mtrx, a, ecc, angleIn = None, angleOut = None):
@@ -339,9 +369,9 @@ class orbit(drawableType):
         if self.angleIn == None and self.angleOut == None:
             lo = -1 * np.pi
             hi = np.pi
-            angs = np.linspace(lo, hi, num = 100)
+            angs = np.linspace(lo, hi, num = 100, endpoint = True)
         else:
-            angs = np.linspace(self.angleIn, self.angleOut, num = 100)
+            angs = np.linspace(self.angleIn, self.angleOut, num = 100, endpoint = True)
 
         #if self.angleOut == None:
             #hi = np.pi

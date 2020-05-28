@@ -54,9 +54,6 @@ def unSquish(coord, mtrx):
 
 class trajectory:
 
-    #
-    #state is relative to the sun
-    #
     def __init__(self, body, tEntrance, state, tExit = None):
 
         self.body = body
@@ -119,16 +116,15 @@ class trajectory:
         arealVelocity = mag(rR) * mag(vR) / 2
         self.av = arealVelocity
 
-        if(self.elements['ECC']<=1):
-            if not tExit == None:
-                #print(tExit - tEntrance).total_seconds()
-                self.angleIn = angleFromR(r, self)
-                tState = sp.conics(self.ele, convert(tExit))
-                self.angleOut = angleFromR(tState[0:3], self)
+        if not tExit == None:
+            #print(tExit - tEntrance).total_seconds()
+            self.angleIn = angleFromR(r, self)
+            tState = sp.conics(self.ele, convert(tExit))
+            self.angleOut = angleFromR(tState[0:3], self)
 
-                if self.angleOut < self.angleIn:
-                    self.angleOut += np.pi*2
-            return
+            if self.angleOut < self.angleIn:
+                self.angleOut += np.pi*2
+        return
 
         #print("results:", rR, vR)
 
@@ -164,10 +160,12 @@ class trajectory:
 
         #print("deltaT: ", self.deltaT, "\nvf:", self.vf, "\nrf: ", self.rf)
 
-        self.angleIn = angleFromR(r, self)
-        self.angleOut = angleFromR(self.exitState[0:3], self)
-        if self.angleOut < self.angleIn:
-            self.angleOut += np.pi*2
+        if not self.angleIn==None:
+            self.angleIn = angleFromR(r, self)
+        if not self.angleOut==None:
+            self.angleOut = angleFromR(self.exitState[0:3], self)
+            if self.angleOut < self.angleIn:
+                self.angleOut += np.pi*2
 
     def relPosition(self, deltaT):
         return sp.conics(self.ele, deltaT+self.elements['T0'])
