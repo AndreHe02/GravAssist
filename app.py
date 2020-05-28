@@ -491,12 +491,13 @@ class Toolbox(QWidget):
         #calculate positions
         global probePositions
 
-        timeLerps = np.linspace(0, 1, len(selectedSolution.trajectories) * 20)
         probePositions = []
+        tTemp = timedelta(seconds = 0)
+        tIncr = timedelta(days = 1)
 
-        for tL in timeLerps:
-            tTemp = selectedSolution.launch + tL * selectedSolution.duration
-            probePositions.append(selectedSolution.getPosition(tL * selectedSolution.duration.total_seconds()))
+        while tTemp < selectedSolution.duration:
+            probePositions.append(selectedSolution.getPosition(tTemp.total_seconds()))
+            tTemp += tIncr
 
         global window
         window.usePlayer()
