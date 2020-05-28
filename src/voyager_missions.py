@@ -44,7 +44,7 @@ def voyager1_recreated(ephem):
 
     th1J, th2J = decaying_descent(dVJ, [[-np.pi, np.pi], [-np.pi, np.pi]], [0.2, 0.2], [np.pi/20, 0], None, iters=5, decay_factor=5)
     enptJ = entrance(Rsoi['JUPITER'], st0J[3:], th1J, th2J)
-    sIntoJ = np.concatenate((enptJ, st0J[3:]))
+    sIntoJ = np.concatenate((enptJ, st0J[3:]+jupiter.state(t0J)[3:]))
     trajByJ = trajectory(jupiter, t0J, sIntoJ, tfJ)
     
     #jupiter to saturn
@@ -68,7 +68,7 @@ def voyager1_recreated(ephem):
 
     th1S, th2S = decaying_descent(dVS, [[-np.pi, np.pi], [-np.pi, np.pi]], [0.2, 0.2], [np.pi/20, 0], None, iters=5, decay_factor=5)
     enptS = entrance(Rsoi['SATURN'], st0S[3:], th1S, th2S)
-    sIntoS = np.concatenate((enptS, st0S[3:]))
+    sIntoS = np.concatenate((enptS, st0S[3:]+saturn.state(t0S)[3:]))
     trajByS = trajectory(saturn, t0S, sIntoS, tfS)
 
     #after saturn
