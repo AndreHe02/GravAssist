@@ -67,16 +67,16 @@ class MissionCalculator(QRunnable):
             #calculate for given mission
             global results
             global ephem
-            
+
             if not ephem_: ep = ephem
             else: ep = ephem_
-                
+
             if self.mName == 'VOYAGER 1':
                 results = [voyager1_recreated(ep), voyager1_original(ep)]
             elif self.mName == 'VOYAGER 2':
                 results = [voyager2_recreated(ep), voyager2_original(ep)]
-            return results
-            
+            #return results
+
         except Exception as e:
             print('error:', e)
             self.signals.error.emit(69)
@@ -106,7 +106,7 @@ class LambertCalculator(QRunnable):
     @Slot()
     def run(self):
         try:
-            
+
             K = 5  #sample density and decay rate
             N = 1  #how many solutions to keep
             ITERS = 2 #for descent minimization
@@ -114,7 +114,7 @@ class LambertCalculator(QRunnable):
             GM = self.sun.Gmass[0]
             F = lambda t0, T: direct_transfer_cost(self.departure, self.arrival, t0, T, GM)[0]
             C = lambda t0, T: t0 + T < tL
-            
+
             #sample for initial conditions
             inits = []
             for i in range(K):
@@ -124,10 +124,10 @@ class LambertCalculator(QRunnable):
                     dV = F(t0_, T_)
                     if dV: inits.append([dV, t0_, T_])
             inits = sorted(inits, key=lambda x: x[0])
-            
+
             #descend to local minima
             ranges = [[tE, tL], [timedelta(days=0), tL-tE]]
-            steps = [(tL-tE)/K/K, (tL-tE)/K/K]        
+            steps = [(tL-tE)/K/K, (tL-tE)/K/K]
             solutions = []
             for initial in inits[:N]:
                 pinit = initial[1:]
@@ -136,10 +136,10 @@ class LambertCalculator(QRunnable):
                 dV, solution = direct_transfer_cost(self.departure, self.arrival, res[0], res[1], GM)
                 solutions.append([dV, res[0], res[1], solution])
             solutions = sorted(solutions, key=lambda x: x[0])
-            
+
             global results
             results = [path(t0, dV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], sol['v1'])), t0+T)]) for dV, t0, T, sol in solutions]
-            
+
 
         except Exception as e:
             print('error:', e)

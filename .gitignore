@@ -37,3 +37,6 @@ Temporary Items
 
 #ignore python files
 *.pyc
+
+#ignore jupyter testing
+*.ipynb

@@ -14,7 +14,7 @@ LEFT_IS_DOWNED = False                              # 鼠标左键被按下
 RIGHT_IS_DOWNED = False                             # 鼠标右键被按下
 MOUSE_X, MOUSE_Y = 0, 0                             # 考察鼠标位移量时保存的起始位置
 
-VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 600.0])  # 视景体的left/right/bottom/top/near/far六个面
+VIEW = np.array([-0.01, 0.01, -0.01, 0.01, 0.01, 1000.0])  # 视景体的left/right/bottom/top/near/far六个面
 SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
 EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
 LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
@@ -591,6 +591,7 @@ def draw(drawables = []):
     glEnable(GL_LIGHTING)
 
     # 绘制
+    """
     #sky sphere
     qobj = gluNewQuadric()
     glEnable(GL_TEXTURE_2D)
@@ -614,10 +615,10 @@ def draw(drawables = []):
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_ADD)
 
     global celesScale
-    gluSphere(qobj, 35 * 149597870 * celesScale * constScale, 100, 100)
+    gluSphere(qobj, 40 * 149597870 * celesScale * constScale, 100, 100)
     #sphere(qobj, 30 * 149597870 * constScale, self.emit, self.mat)
 
-    gluDeleteQuadric(qobj)
+    gluDeleteQuadric(qobj)"""
 
     #solids
     for i in drawables:
@@ -662,14 +663,12 @@ def reshape(width, height):
 def autoChase(posProbe):
     #maintain the current camera angles while following the movement of the probe
     global LOOK_AT, EYE
-    lookTo = LOOK_AT - EYE
+    #lookTo = LOOK_AT - EYE
 
     posPr = np.array([-posProbe[0], -posProbe[2], posProbe[1]])
 
+    EYE = -1 * (LOOK_AT - EYE - posPr * celesScale)
     LOOK_AT = posPr * celesScale
-    EYE = LOOK_AT - lookTo
-
-    lookTo = LOOK_AT - EYE
     #print(LOOK_AT)
 
     global DIST, PHI, THETA
@@ -754,7 +753,7 @@ def mousemotion(x, y):
         dy = y - MOUSE_Y
         lookTo = EYE - LOOK_AT
         lookRight = np.cross(-1 * lookTo, EYE_UP)
-        lookTo = lookTo * (1 + .025 * np.sign(dy))
+        lookTo = lookTo * (1 + .1 * np.sign(dy))
         EYE = LOOK_AT + lookTo
         DIST, PHI, THETA = getposture()
 
