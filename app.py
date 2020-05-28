@@ -213,6 +213,7 @@ class MainWindow(QMainWindow):
             retval = msg.exec_()
         else:
             #self.player = plyrView(glWidget())
+            self.player.reset()
             self.player.notifyChange()
             self.stacked.setCurrentWidget(self.player)
             self.player.graphWidget.resizeGL(self.player.graphWidget.frameGeometry().width()*2, self.player.graphWidget.frameGeometry().height()*2)
@@ -573,6 +574,40 @@ class plyrView(QWidget):
         self.info.clicked.connect(self.showInfo)
         self.layout.addWidget(self.info, 3, 4)"""
 
+    def reset(self):
+        #animate button
+        self.back = QPushButton('back', self)
+        self.back.setToolTip('go back to input page')
+        self.back.clicked.connect(self.switch)
+        self.layout.addWidget(self.back, 0, 0)
+
+        #screen
+        self.graphWidget.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+
+        #progress slider
+
+        #play/pause button
+        self.isPlaying = False
+        self.wasPlaying = False
+        self.play.setText('\u25B6')
+        self.play.setToolTip('play/pause')
+        self.play.setStyleSheet('QPushButton {font-weight: bold;}')
+
+        #speed button
+        self.speed.setText('7 days/second')
+        self.speed.setToolTip('change playing speed')
+        self.vidSpeed = 604800 # in seconds per second
+
+        #view mode button
+        self.vidMode = 0
+
+        """
+        #info button
+        self.info = QPushButton('info')
+        self.info.setToolTip('show info about path')
+        self.info.clicked.connect(self.showInfo)
+        self.layout.addWidget(self.info, 3, 4)"""
+
     def notifyChange(self):
         global selectedSolution
         ss = selectedSolution
@@ -580,7 +615,6 @@ class plyrView(QWidget):
         self.progress.setMinimum(0)
         self.progress.setMaximum(ss.duration.total_seconds())
         self.progress.setValue(0)
-
 
     def playBtn(self):
         if self.isPlaying == True:
@@ -894,8 +928,8 @@ if __name__ == '__main__':
     #loading screen
     loading = QSplashScreen(QPixmap('assets/loading-min.jpg').scaled(640,480))
     loading.show()
-    loading.setStyleSheet('font-size: 18pt; font-family: Courier; color: rgb(255, 255, 255)')
-    loading.showMessage("picture by NASA/JPL-Caltech/Univ. of Arizona\nMars Reconnaissance Orbiter (MRO)\nid: PIA17646")
+    #loading.setStyleSheet('font-size: 18pt; font-family: Courier; color: rgb(255, 255, 255)')
+    #loading.showMessage("picture by NASA/JPL-Caltech/Univ. of Arizona\nMars Reconnaissance Orbiter (MRO)\nid: PIA17646")
 
     #SPICE initializations
     global ephem
