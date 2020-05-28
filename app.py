@@ -213,6 +213,7 @@ class MainWindow(QMainWindow):
             #self.player = plyrView(glWidget())
             self.player.notifyChange()
             self.stacked.setCurrentWidget(self.player)
+            self.player.graphWidget.resizeGL(self.player.graphWidget.frameGeometry().width()*2, self.player.graphWidget.frameGeometry().height()*2)
 
 class cntrView(QSplitter):
 
