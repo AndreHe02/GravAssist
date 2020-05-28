@@ -32,7 +32,7 @@ def lambert_transfer(p1, p2, T, GM, prec):
     #E - in vector space defined by ellipse axes
 
     #keep p1 as shorter leg
-    mirrored = norm(p2) < norm(p1)  
+    mirrored = norm(p2) < norm(p1)
     if mirrored: p1, p2 = p2, p1
     #compute dimension reduction matrix
     i = p1 / norm(p1)
@@ -66,13 +66,13 @@ def lambert_transfer(p1, p2, T, GM, prec):
         #to reduced 2D space
         if lH >= 0: f2R = iH * xH + jH * yH + (p1R + p2R) / 2
         else: f2R = iH * xH - jH * yH + (p1R + p2R) / 2
-        
+
         #compute elliptical orbit parameters
         aE = (norm(p1R) + norm(p1R - f2R)) / 2
         cE = norm(f2R) / 2
         bE = np.sqrt(aE**2 - cE**2)
         TE = timedelta(seconds=((4 * np.pi**2 * aE**3 / GM) ** 0.5))
-        
+
         #compute time to transfer from p1 to p2
         #on computed elliptical orbit
         ctR = f2R / 2
@@ -104,12 +104,12 @@ def lambert_transfer(p1, p2, T, GM, prec):
         else: AfR = ActR - tctR - tfR
         dt = AfR / AreaE * TE
         if not solve: return dt, TE-dt
-        
+
         #compute initial and final velocities
         #get speed from energy equation
         s1 = np.sqrt(GM * (2 / norm(p1) - 1/aE))
         s2 = np.sqrt(GM * (2 / norm(p2) - 1/aE))
-        if mirrored: 
+        if mirrored:
             rhref = np.cross(r2E, r1E)
             r1E, r2E = r2E, r1E
             s1, s2 = s2, s1
@@ -123,7 +123,7 @@ def lambert_transfer(p1, p2, T, GM, prec):
         v1 = v1 / norm(v1) * s1
         v2 = v2 / norm(v2) * s2
         return [{'v1':v1, 'v2':v2, 'dt':dt}, {'v1':-v1, 'v2':-v2, 'dt':TE-dt}]
-        
+
     #fit time constraint
     def fit_time_constraint(tsf, lH_range=1e9):
         left_min = ternary_search(tsf, -lH_range, 0, prec)
@@ -133,13 +133,13 @@ def lambert_transfer(p1, p2, T, GM, prec):
             binary_search(tsf, 0, right_min, T,False, prec),
             binary_search(tsf, right_min, lH_range, T, True, prec)]
         return [lH for lH in valid_lHs if lH]
-    
+
     TSF1 = lambda lH: time_transfer(lH)[0]
     TSF2 = lambda lH: time_transfer(lH)[1]
     short_lHs = fit_time_constraint(TSF1)
     long_lHs = fit_time_constraint(TSF2)
     short_solutions = [time_transfer(lH, solve=True)[0] for lH in short_lHs]
-    long_solutions = [time_transfer(lH, solve=True)[1] for lH in long_lHs]  
+    long_solutions = [time_transfer(lH, solve=True)[1] for lH in long_lHs]
     return short_solutions + long_solutions
 
 def direct_transfer_cost(body1, body2, t0, T, GM):
@@ -154,4 +154,3 @@ def direct_transfer_cost(body1, body2, t0, T, GM):
         dV = np.linalg.norm(v0-v1) + np.linalg.norm(vf-v2)
         if not dVmin or dV < dVmin: dVmin, res = dV, sol
     return dVmin, res
-            

@@ -1,5 +1,9 @@
 
 import sys
+import os
+os.environ['OPENBLAS_NUM_THREADS']='1' #multithread conflict fix
+#os.system('echo $OPENBLAS_NUM_THREADS')
+
 #from PySide2.QtWidgets import *
 from PySide2.QtGui import *
 from PySide2.QtWidgets import *
@@ -19,7 +23,7 @@ from src.voyager_missions import *
 from src.path import *
 import spiceypy as sp
 import numpy as np
-import os
+#np.show_config()
 
 import src.visualizeGL as vis
 import faulthandler
@@ -106,7 +110,6 @@ class LambertCalculator(QRunnable):
     @Slot()
     def run(self):
         try:
-
             K = 5  #sample density and decay rate
             N = 1  #how many solutions to keep
             ITERS = 2 #for descent minimization
@@ -139,7 +142,6 @@ class LambertCalculator(QRunnable):
 
             global results
             results = [path(t0, dV, T, [t0], [trajectory(self.sun, t0, np.concatenate((self.departure.state(t0)[:3], sol['v1'])), t0+T)]) for dV, t0, T, sol in solutions]
-
 
         except Exception as e:
             print('error:', e)
