@@ -377,6 +377,12 @@ class Toolbox(QWidget):
         self.animate.clicked.connect(self.anim)
         self.layout.addWidget(self.animate, 8, 0, rowSpan = 1, columnSpan = 2)
 
+        l6 = QLabel()
+        l6.setText('app by Andre He & Alan Tao\ndata from JPL SPICE Toolkit, app built with PySide2 and FBS, textures from Solar System Scope')
+        l6.setWordWrap(True)
+        l6.setStyleSheet("QLabel { color : gray;}")
+        self.layout.addWidget(l6, 9, 0, 1, 2)
+
     def missionToggle(self):
         mName = self.missions.currentText()
         global known_missions
