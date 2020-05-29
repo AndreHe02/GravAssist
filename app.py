@@ -950,6 +950,9 @@ if __name__ == '__main__':
     #initialize main window
     global window
     window = MainWindow()
+    
+    app.setWindowIcon(QIcon('logo.ico'))
+    window.setWindowIcon(QIcon('logo.ico'))
 
     window.show()
     #splash.close()
