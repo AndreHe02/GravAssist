@@ -19,6 +19,7 @@ SCALE_K = np.array([1.0, 1.0, 1.0])                 # 模型缩放比例
 EYE = np.array([0.0, 0.0, 8])                     # 眼睛的位置（默认z轴的正方向）
 LOOK_AT = np.array([0.0, 0.0, 0.0])                 # 瞄准方向的参考点（默认在坐标原点）
 EYE_UP = np.array([0.0, 1.0, 0.0])                  # 定义对观察者而言的上方（默认y轴的正方向）
+EYE_RIGHT = np.array([1.0, 0.0, 0.0])
 
 DIST = 0
 PHI = 0
@@ -34,6 +35,8 @@ def getposture():
     else:
         phi = 0.0
         theta = 0.0
+
+    #print(dist, phi, theta)
 
     return dist, phi, theta
 
@@ -781,10 +784,12 @@ def mousemotion(x, y):
 
     if RIGHT_IS_DOWNED:
         dy = y - MOUSE_Y
-        lookTo = EYE - LOOK_AT
-        lookRight = np.cross(-1 * lookTo, EYE_UP)
-        lookTo = lookTo * (1 + .1 * np.sign(dy))
-        EYE = LOOK_AT + lookTo
+        #lookTo = EYE - LOOK_AT
+        #lookRight = np.cross(-1 * lookTo, EYE_UP)
+        #lookTo = lookTo * (1 + .1 * np.sign(dy))
+        #EYE = LOOK_AT + lookTo
+
+        EYE = LOOK_AT - (1 + .1 * np.sign(dy)) * (LOOK_AT - EYE)
         DIST, PHI, THETA = getposture()
 
         glutPostRedisplay()
@@ -794,21 +799,33 @@ def mousemotion(x, y):
         dy = y - MOUSE_Y
         MOUSE_X, MOUSE_Y = x, y
 
-        f = .2
+        rotSpd = 0.07
+        global EYE_RIGHT
 
-        lookTowards = LOOK_AT - EYE
-        lookRight = np.cross(lookTowards, EYE_UP)
-        lookRight /= np.linalg.norm(lookRight)
+        #pitch
+        """
+        zInScreen = np.dot(rotateBy(EYE_RIGHT, dy * rotSpd),EYE_UP)
+        rVec = np.dot(rotateBy(EYE_RIGHT,dy * rotSpd),(LOOK_AT-EYE))
+        """
+        pRotM = rotateBy(EYE_RIGHT, dy* -1 *rotSpd)
+        zInScreen = np.dot(pRotM, EYE_UP)
+        zInScreen /= np.linalg.norm(zInScreen)
 
-        EYE += dx * f * lookRight + dy * f * EYE_UP
-        EYE *= DIST / abs(np.linalg.norm(LOOK_AT - EYE))
+        rVec = np.dot(pRotM,(LOOK_AT-EYE))
+
+        EYE = LOOK_AT - rVec
+        EYE_UP=zInScreen
+
+        # yaw
+        yRotM = rotateBy(EYE_UP, dx * rotSpd)
+        xInScreen = np.dot(yRotM, EYE_RIGHT)
+        xInScreen /= np.linalg.norm(xInScreen)\
+
+        rVec = np.dot(yRotM, rVec)
+        EYE = LOOK_AT - rVec
+        EYE_RIGHT = xInScreen
 
         DIST, PHI, THETA = getposture()
-
-        if 0.5*np.pi < PHI < 1.5*np.pi:
-            EYE_UP[1] = -1.0
-        else:
-            EYE_UP[1] = 1.0
 
         glutPostRedisplay()
 
